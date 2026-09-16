@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swing Pay — Send USDC on Arc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy: #14213D;
+    --navy-deep: #0E1830;
+    --paper: #F2E8D5;
+    --paper-dim: #E6D9BE;
+    --cream: #F7F3E9;
+    --gold: #E8A33D;
+    --gold-dim: #C7852A;
+    --teal: #1B4B43;
+    --teal-bright: #2C7A6C;
+    --rust: #C1502E;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--navy); color: var(--cream); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 18px 60px; position: relative; overflow-x: hidden; }
+  .backdrop-arc { position: absolute; top: -10%; left: 50%; width: 900px; max-width: 220vw; height: 900px; transform: translateX(-50%); opacity: 0.14; pointer-events: none; }
+  .wrap { width: 100%; max-width: 440px; position: relative; z-index: 1; }
+  .hero { text-align: left; margin-bottom: 26px; padding: 0 4px; }
+  .hero-mark { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .hero-mark svg { flex-shrink: 0; }
+  .wordmark { font-family: 'Fraunces', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; color: var(--cream); }
+  .tagline { font-size: 15px; line-height: 1.5; color: var(--paper-dim); max-width: 34ch; }
+  .tagline em { font-family: 'Fraunces', serif; font-style: italic; color: var(--gold); }
+  .card { background: var(--paper); border-radius: 18px; padding: 24px; color: var(--navy); box-shadow: 0 24px 60px -20px rgba(0,0,0,0.55); }
+  .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; padding: 5px 10px 5px 8px; border-radius: 100px; background: var(--paper-dim); color: var(--navy); white-space: nowrap; }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: #999; }
+  .chip.ok .dot { background: var(--teal-bright); }
+  .chip.warn .dot { background: var(--rust); }
+  .btn { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14.5px; border: none; border-radius: 12px; padding: 13px 18px; cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease; }
+  .btn:active { transform: translateY(1px) scale(0.99); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--navy); color: var(--cream); width: 100%; }
+  .btn-primary:hover:not(:disabled) { background: var(--navy-deep); }
+  .btn-gold { background: var(--gold); color: var(--navy-deep); width: 100%; }
+  .btn-gold:hover:not(:disabled) { background: var(--gold-dim); }
+  .btn-ghost { background: transparent; color: var(--navy); text-decoration: underline; text-underline-offset: 3px; padding: 8px 0; font-weight: 500; }
+  .btn-wallet { display: flex; align-items: center; gap: 10px; width: 100%; background: var(--cream); color: var(--navy); border: 1.5px solid rgba(20,33,61,0.14); text-align: left; justify-content: flex-start; }
+  .btn-wallet:hover:not(:disabled) { border-color: var(--navy); }
+  .btn-wallet img { width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; }
+  .btn-wallet .fallback-icon { width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; background: var(--navy); color: var(--cream); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .divider { height: 1px; background: rgba(20,33,61,0.12); margin: 20px 0; }
+  .balance-block { margin: 18px 0 4px; }
+  .balance-label { font-size: 12.5px; color: rgba(20,33,61,0.6); margin-bottom: 2px; }
+  .balance-value { font-family: 'Fraunces', serif; font-size: 32px; font-weight: 600; letter-spacing: -0.01em; }
+  .balance-value .unit { font-size: 16px; font-weight: 500; color: rgba(20,33,61,0.55); margin-left: 4px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: rgba(20,33,61,0.75); }
+  .field input { width: 100%; font-family: 'Inter', sans-serif; font-size: 15px; padding: 12px 13px; border-radius: 10px; border: 1.5px solid rgba(20,33,61,0.18); background: var(--cream); color: var(--navy); outline: none; transition: border-color 0.15s ease; }
+  .field input:focus { border-color: var(--navy); }
+  .field input::placeholder { color: rgba(20,33,61,0.35); }
+  .address-pill { font-size: 13px; font-weight: 500; padding: 6px 11px; border-radius: 100px; background: var(--navy); color: var(--cream); font-variant-numeric: tabular-nums; }
+  .status { margin-top: 16px; padding: 12px 14px; border-radius: 10px; font-size: 13.5px; line-height: 1.5; display: none; }
+  .status.show { display: block; }
+  .status.pending { background: rgba(20,33,61,0.08); color: var(--navy); }
+  .status.success { background: rgba(27,75,67,0.12); color: var(--teal); }
+  .status.error { background: rgba(193,80,46,0.12); color: var(--rust); }
+  .status a { color: inherit; font-weight: 600; }
+  .empty-state { text-align: center; padding: 18px 6px 6px; }
+  .empty-state p { font-size: 13.5px; color: rgba(20,33,61,0.6); margin: 10px 0 14px; line-height: 1.5; }
+  #walletOptions { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+  .footer { margin-top: 22px; padding: 0 6px; display: flex; flex-direction: column; gap: 8px; }
+  .footer-row { display: flex; justify-content: space-between; font-size: 12px; color: rgba(247,243,233,0.45); }
+  .footer-row a { color: rgba(247,243,233,0.7); text-decoration: none; }
+  .footer-row a:hover { color: var(--gold); }
+  .footer-row code { font-family: 'Inter', sans-serif; background: rgba(247,243,233,0.08); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+  @keyframes swingOnce { 0% { transform: rotate(0deg); } 30% { transform: rotate(-9deg); } 55% { transform: rotate(6deg); } 75% { transform: rotate(-3deg); } 100% { transform: rotate(0deg); } }
+  .swing-anim { transform-origin: 50% 8%; animation: swingOnce 1.1s ease-out 0.15s 1; }
+  @media (prefers-reduced-motion: reduce) { .swing-anim { animation: none; } }
+</style>
+</head>
+<body>
+<svg class="backdrop-arc" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 20 200 A 180 180 0 0 1 380 200" stroke="#E8A33D" stroke-width="2" fill="none"/>
+  <path d="M 60 200 A 140 140 0 0 1 340 200" stroke="#F7F3E9" stroke-width="1" fill="none" opacity="0.6"/>
+</svg>
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-mark">
+      <svg width="34" height="34" viewBox="0 0 34 34" class="swing-anim">
+        <circle cx="17" cy="4" r="2.5" fill="#F7F3E9"/>
+        <line x1="17" y1="6" x2="17" y2="22" stroke="#F7F3E9" stroke-width="1.5"/>
+        <circle cx="17" cy="27" r="6" fill="#E8A33D"/>
+      </svg>
+      <span class="wordmark">Swing Pay</span>
+    </div>
+    <p class="tagline">Kirim USDC di jaringan <em>Arc</em> — testnet, transaksi asli, tanpa custodian.</p>
+  </div>
+  <div class="card">
+    <div class="row-between" id="networkRow">
+      <span class="chip" id="networkChip"><span class="dot"></span><span id="networkChipText">Belum terhubung</span></span>
+      <span class="address-pill" id="addressPill" style="display:none;"></span>
+    </div>
+    <div id="disconnectedView" class="empty-state">
+      <svg width="30" height="30" viewBox="0 0 30 30" style="opacity:0.35;">
+        <rect x="4" y="10" width="22" height="15" rx="3" fill="none" stroke="#14213D" stroke-width="1.6"/>
+        <path d="M4 12 L15 4 L26 12" fill="none" stroke="#14213D" stroke-width="1.6"/>
+        <circle cx="20" cy="17.5" r="1.6" fill="#14213D"/>
+      </svg>
+      <p>Hubungkan dompet EVM apa saja — MetaMask, Rabby, Coinbase Wallet, dan lainnya terdeteksi otomatis.</p>
+      <div id="walletOptions">
+        <button class="btn btn-primary" id="connectBtn">Connect wallet</button>
+      </div>
+    </div>
+    <div id="connectedView" style="display:none;">
+      <div class="balance-block">
+        <div class="balance-label">Saldo USDC — Arc Testnet</div>
+        <div class="balance-value"><span id="balanceValue">0.00</span><span class="unit">USDC</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="field">
+        <label for="toAddress">Alamat tujuan</label>
+        <input type="text" id="toAddress" placeholder="0x...">
+      </div>
+      <div class="field">
+        <label for="amount">Jumlah</label>
+        <input type="text" id="amount" placeholder="0.00" inputmode="decimal">
+      </div>
+      <button class="btn btn-gold" id="sendBtn">Kirim USDC</button>
+      <button class="btn btn-ghost" id="refreshBtn" style="width:100%; text-align:center;">Refresh saldo</button>
+      <button class="btn btn-ghost" id="disconnectBtn" style="width:100%; text-align:center;">Ganti / putuskan dompet</button>
+      <div class="status" id="statusBox"></div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="footer-row">
+      <span>Arc Testnet · <code id="chainIdLabel">5042002</code></span>
+      <a href="https://faucet.circle.com" target="_blank" rel="noopener">Ambil test USDC ↗</a>
+    </div>
+    <div class="footer-row">
+      <span>Non-custodial — dompet kamu tetap di tangan kamu</span>
+      <a href="https://testnet.arcscan.app" target="_blank" rel="noopener">ArcScan ↗</a>
+    </div>
+  </div>
+</div>
+<script>
+  const ARC_TESTNET = {
+    chainIdHex: '0x4cef52',
+    chainIdDec: 5042002,
+    chainName: 'Arc Testnet',
+    nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+    rpcUrls: ['https://rpc.testnet.arc.network'],
+    blockExplorerUrls: ['https://testnet.arcscan.app']
+  };
+  const USDC_ADDRESS = '0x3600000000000000000000000000000000000000';
+  const USDC_DECIMALS = 6;
+  const els = {
+    connectBtn: document.getElementById('connectBtn'),
+    walletOptions: document.getElementById('walletOptions'),
+    sendBtn: document.getElementById('sendBtn'),
+    refreshBtn: document.getElementById('refreshBtn'),
+    disconnectBtn: document.getElementById('disconnectBtn'),
+    disconnectedView: document.getElementById('disconnectedView'),
+    connectedView: document.getElementById('connectedView'),
+    networkChip: document.getElementById('networkChip'),
+    networkChipText: document.getElementById('networkChipText'),
+    addressPill: document.getElementById('addressPill'),
+    balanceValue: document.getElementById('balanceValue'),
+    toAddress: document.getElementById('toAddress'),
+    amount: document.getElementById('amount'),
+    statusBox: document.getElementById('statusBox'),
+  };
+  let currentAccount = null;
+  let onArcNetwork = false;
+  let activeProvider = null;
+  const listenedProviders = new WeakSet();
+  function shortAddr(a) { return a.slice(0, 6) + '…' + a.slice(-4); }
+  function setStatus(k
