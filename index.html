@@ -55,3 +55,164 @@ a{color:var(--acc)}
     <div class="row">
       <div id="who" style="font-weight:600;font-size:15px">Belum terhubung</div>
       <div class="chip" id="netChip">—</div>
+    </div>
+    <div id="discon">
+      <p class="sub" style="margin:10px 0 0">Semua dompet EVM didukung: MetaMask, Rabby, OKX, Trust, Coinbase, Bitget, dan lainnya.</p>
+      <div class="wallets" id="list"></div>
+      <div class="stack" style="margin-top:10px">
+        <button class="ghost" id="rescan">Dompet tidak muncul? Pindai ulang</button>
+      </div>
+    </div>
+    <div id="con" class="hide">
+      <div style="margin-top:14px" class="bal"><span id="bal">0.00</span><span>USDC</span></div>
+      <label for="to">Alamat tujuan</label>
+      <input id="to" placeholder="0x..." autocomplete="off" spellcheck="false">
+      <label for="amt">Jumlah</label>
+      <input id="amt" type="number" inputmode="decimal" placeholder="0.00" min="0" step="0.01">
+      <div class="stack" style="margin-top:14px">
+        <button id="send">Kirim USDC</button>
+        <button class="ghost" id="refresh">Refresh saldo</button>
+        <button class="ghost" id="switch">Pindah ke Arc Testnet</button>
+        <button class="ghost" id="dis">Putuskan dompet</button>
+      </div>
+    </div>
+    <div class="msg hide" id="msg"></div>
+  </div>
+
+  <div class="foot">
+    Arc Testnet · 5042002 · <a href="https://faucet.circle.com" target="_blank" rel="noopener">Ambil test USDC ↗</a><br>
+    <a href="https://testnet.arcscan.app" target="_blank" rel="noopener">ArcScan ↗</a>
+  </div>
+</div>
+
+<script>
+const ARC={chainIdHex:'0x4CEF52',chainIdDec:5042002,chainName:'Arc Testnet',
+  nativeCurrency:{name:'USDC',symbol:'USDC',decimals:18},
+  rpcUrls:['https://rpc.testnet.arc.network'],blockExplorerUrls:['https://testnet.arcscan.app']};
+const USDC='0x3600000000000000000000000000000000000000', DEC=6;
+const $=id=>document.getElementById(id);
+let providers=[], p=null, acct=null, onArc=false, busy=false;
+
+function say(t,k){const m=$('msg');m.textContent=t;m.className='msg'+(k?' '+k:'');m.classList.remove('hide');}
+function clr(){$('msg').classList.add('hide');}
+const short=a=>a.slice(0,6)+'…'+a.slice(-4);
+
+/* ---------- Penemuan dompet: EIP-6963 + fallback injeksi ---------- */
+function addProvider(info,provider){
+  if(!provider) return;
+  if(providers.some(x=>x.provider===provider||x.info.uuid===info.uuid)) return;
+  providers.push({info,provider}); render();
+}
+window.addEventListener('eip6963:announceProvider',e=>addProvider(e.detail.info,e.detail.provider));
+function scan(){
+  window.dispatchEvent(new Event('eip6963:requestProvider'));
+  const eth=window.ethereum;
+  if(!eth) return;
+  const list=Array.isArray(eth.providers)&&eth.providers.length?eth.providers:[eth];
+  list.forEach((pr,i)=>{
+    const name=pr.isRabby?'Rabby':pr.isOkxWallet||pr.isOKExWallet?'OKX Wallet':
+      pr.isCoinbaseWallet?'Coinbase Wallet':pr.isTrust||pr.isTrustWallet?'Trust Wallet':
+      pr.isBitKeep||pr.isBitget?'Bitget Wallet':pr.isPhantom?'Phantom':
+      pr.isBraveWallet?'Brave Wallet':pr.isMetaMask?'MetaMask':'Dompet Terinjeksi '+(i+1);
+    addProvider({uuid:'inj-'+name+i,name,icon:'',rdns:'injected'},pr);
+  });
+}
+function render(){
+  const box=$('list'); box.innerHTML='';
+  if(!providers.length){
+    box.innerHTML='<div class="msg">Tidak ada dompet EVM terdeteksi. Buka halaman ini di browser dompet (MetaMask/OKX/Trust) atau pasang ekstensinya.</div>';
+    return;
+  }
+  providers.forEach((w,i)=>{
+    const b=document.createElement('button'); b.className='w';
+    b.innerHTML=(w.info.icon?`<img src="${w.info.icon}" alt="">`:'<div class="logo" style="width:26px;height:26px;border-radius:7px;font-size:12px">'+w.info.name[0]+'</div>')
+      +`<span>${w.info.name}</span><small>Hubungkan</small>`;
+    b.onclick=()=>connect(i); box.appendChild(b);
+  });
+}
+
+/* ---------- Koneksi ---------- */
+async function connect(i){
+  if(busy) return; busy=true;
+  const w=providers[i]; p=w.provider; clr();
+  say('Membuka '+w.info.name+'… setujui permintaan di dompet kamu.');
+  try{
+    let accs=[];
+    try{ accs=await p.request({method:'eth_requestAccounts'}); }
+    catch(e){
+      if(e&&(e.code===-32002||/already pending/i.test(e.message||''))){
+        say('Ada permintaan yang masih menunggu. Buka jendela '+w.info.name+' lalu setujui.','err'); busy=false; return;
+      }
+      throw e;
+    }
+    if(!accs||!accs.length){
+      try{
+        await p.request({method:'wallet_requestPermissions',params:[{eth_accounts:{}}]});
+        accs=await p.request({method:'eth_accounts'});
+      }catch(_){}
+    }
+    if(!accs||!accs.length){ say('Dompet tidak mengembalikan akun. Buka kunci '+w.info.name+' lalu coba lagi.','err'); busy=false; return; }
+    acct=accs[0];
+    listen();
+    await checkChain(); await refresh();
+    $('discon').classList.add('hide'); $('con').classList.remove('hide');
+    $('who').textContent=w.info.name+' · '+short(acct);
+    say('Terhubung sebagai '+short(acct),'ok');
+  }catch(e){ say('Gagal terhubung: '+(e.message||e),'err'); }
+  busy=false;
+}
+function listen(){
+  if(!p||p._swing) return; p._swing=true;
+  p.on&&p.on('accountsChanged',a=>{ if(!a.length) return disconnect(); acct=a[0]; $('who').textContent=short(acct); refresh(); });
+  p.on&&p.on('chainChanged',()=>{ checkChain().then(refresh); });
+}
+async function checkChain(){
+  const id=await p.request({method:'eth_chainId'});
+  onArc=parseInt(id,16)===ARC.chainIdDec;
+  const c=$('netChip'); c.textContent=onArc?'Arc Testnet':'Jaringan salah'; c.className='chip '+(onArc?'ok':'err');
+  return onArc;
+}
+async function switchChain(){
+  try{ await p.request({method:'wallet_switchEthereumChain',params:[{chainId:ARC.chainIdHex}]}); }
+  catch(e){
+    if(e.code===4902||e.code===-32603){ await p.request({method:'wallet_addEthereumChain',params:[ARC]}); }
+    else { say('Gagal pindah jaringan: '+(e.message||e),'err'); return false; }
+  }
+  return await checkChain();
+}
+function disconnect(){ p=null;acct=null; $('con').classList.add('hide'); $('discon').classList.remove('hide');
+  $('who').textContent='Belum terhubung'; $('netChip').textContent='—'; $('netChip').className='chip'; clr(); }
+
+/* ---------- Saldo & kirim ---------- */
+const pad=s=>s.replace('0x','').padStart(64,'0');
+function toUnits(v){ const [a,b='']=String(v).split('.'); return BigInt(a||'0')*10n**BigInt(DEC)+BigInt((b+'0'.repeat(DEC)).slice(0,DEC)||'0'); }
+function fmt(bi){ const s=bi.toString().padStart(DEC+1,'0'); return s.slice(0,-DEC)+'.'+s.slice(-DEC).slice(0,2); }
+async function refresh(){
+  if(!p||!acct) return;
+  if(!onArc){ $('bal').textContent='—'; return; }
+  try{
+    const r=await p.request({method:'eth_call',params:[{to:USDC,data:'0x70a08231'+pad(acct)},'latest']});
+    $('bal').textContent=fmt(BigInt(r||'0x0'));
+  }catch(e){ $('bal').textContent='—'; }
+}
+async function send(){
+  clr();
+  const to=$('to').value.trim(), amt=$('amt').value.trim();
+  if(!/^0x[a-fA-F0-9]{40}$/.test(to)) return say('Alamat tujuan tidak valid.','err');
+  if(!(Number(amt)>0)) return say('Jumlah harus lebih dari 0.','err');
+  if(!onArc && !(await switchChain())) return say('Pindah dulu ke Arc Testnet.','err');
+  const val=toUnits(amt).toString(16).padStart(64,'0');
+  try{
+    say('Menunggu konfirmasi di dompet…');
+    const tx=await p.request({method:'eth_sendTransaction',params:[{from:acct,to:USDC,data:'0xa9059cbb'+pad(to)+val}]});
+    say('Terkirim! Tx: '+tx,'ok'); setTimeout(refresh,4000);
+  }catch(e){ say('Transaksi gagal/dibatalkan: '+(e.message||e),'err'); }
+}
+
+$('rescan').onclick=()=>{scan();say('Memindai ulang dompet…');};
+$('refresh').onclick=refresh; $('send').onclick=send; $('dis').onclick=disconnect;
+$('switch').onclick=async()=>{ if(await switchChain()){say('Sudah di Arc Testnet','ok');refresh();} };
+scan(); setTimeout(scan,600);
+</script>
+</body>
+</html>
