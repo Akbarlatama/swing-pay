@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SwingPay — Bridge, Swap, dan Kirim di Arc</title>
-<meta name="description" content="SwingPay: satu antarmuka untuk masuk ke ekosistem Arc. Kirim USDC dan EURC, bridge dari jaringan lain, dan siapkan fiat IDR.">
+<title>SwingPay — Pintu lintas Arc: masuk, tukar, dan kirim stablecoin</title>
+<meta name="description" content="SwingPay adalah pintu lintas Arc. Masuk dari jaringan lain, tukar stablecoin, dan selesaikan pembayaran USDC dan EURC langsung di Arc.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -66,19 +66,24 @@ svg{display:block}
 main{padding:34px 34px 60px;max-width:1240px;width:100%}
 
 /* ---------- hero ---------- */
-.hero{position:relative;padding-right:340px;min-height:230px}
+.hero{position:relative;padding-right:340px;min-height:200px}
 .hero h1{font-size:clamp(34px,4.4vw,52px);line-height:1.08;font-weight:800;letter-spacing:-.03em}
 .hero h1 .l2{color:var(--cyan);display:block}
-.hero p{color:#b9c8ea;max-width:520px;margin-top:16px;font-size:15px}
+.hero p{color:#b9c8ea;max-width:560px;margin-top:16px;font-size:15px}
 .hero .glow{position:absolute;right:-20px;top:-40px;width:420px;height:300px;pointer-events:none}
-.stats{display:flex;flex-wrap:wrap;gap:28px;margin-top:26px}
-.stat{display:flex;align-items:center;gap:12px}
-.stat i{width:40px;height:40px;border:1px solid var(--stroke2);border-radius:12px;display:grid;place-items:center;background:var(--panel);color:var(--cyan)}
-.stat b{display:block;font-size:14px}
-.stat span{color:var(--mute);font-size:12px}
+
+/* ---------- alur Access → Liquidity → Settlement ---------- */
+.path{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:26px}
+.path li{position:relative}
+.path li:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:8px;height:8px;border-right:2px solid var(--cyan);border-top:2px solid var(--cyan);transform:translateY(-50%) rotate(45deg);z-index:2}
+.step{display:block;height:100%;padding:16px 18px;border:1px solid var(--stroke);border-radius:16px;background:linear-gradient(180deg,#0a1636,#07112b)}
+.step:hover{border-color:var(--blue)}
+.step .h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.step b{font-size:16px}
+.step p{color:var(--mute);font-size:12.5px}
 
 /* ---------- grid ---------- */
-.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;margin-top:30px;align-items:start}
+.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;margin-top:26px;align-items:start}
 .col{display:flex;flex-direction:column;gap:22px;min-width:0}
 .card{background:linear-gradient(180deg,#0a1636,#07112b);border:1px solid var(--stroke);border-radius:20px;padding:20px}
 .card h2{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
@@ -121,6 +126,8 @@ main{padding:34px 34px 60px;max-width:1240px;width:100%}
 .soonbox{padding:22px;border:1px dashed var(--stroke2);border-radius:16px;background:#060f26;text-align:center}
 .soonbox b{font-size:16px;display:block;margin:8px 0 6px}
 .soonbox p{color:var(--mute);max-width:420px;margin:0 auto}
+.netfix{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;border:1px solid var(--stroke);border-radius:12px;background:#060f26;color:var(--mute);font-size:12.5px;font-weight:600}
+.netfix b{color:var(--text)}
 
 /* ---------- assets ---------- */
 .total{border:1px solid var(--stroke);border-radius:16px;padding:16px;background:#060f26}
@@ -164,6 +171,8 @@ main{padding:34px 34px 60px;max-width:1240px;width:100%}
 .empty{color:var(--mute);padding:8px 0 4px}
 
 footer{border-top:1px solid var(--stroke);padding:18px 34px;display:flex;justify-content:space-between;align-items:center;color:var(--mute);font-size:12.5px;gap:16px;flex-wrap:wrap}
+footer .links{display:flex;gap:18px}
+footer .links a{color:var(--cyan);font-weight:600}
 
 /* ---------- modal + toast ---------- */
 .veil{position:fixed;inset:0;background:#02061099;backdrop-filter:blur(4px);display:none;place-items:center;z-index:50;padding:16px}
@@ -190,6 +199,8 @@ footer{border-top:1px solid var(--stroke);padding:18px 34px;display:flex;justify
   .topnav{display:none}
   .top{padding:10px 16px;gap:10px}
   main{padding:22px 16px 48px}
+  .path{grid-template-columns:1fr}
+  .path li:not(:last-child)::after{right:auto;left:50%;top:auto;bottom:-13px;transform:translateX(-50%) rotate(135deg)}
   .chains{grid-template-columns:repeat(3,1fr)}
   .fiat{grid-template-columns:repeat(4,1fr)}
   .tokens{grid-template-columns:repeat(4,1fr)}
@@ -214,7 +225,7 @@ footer{border-top:1px solid var(--stroke);padding:18px 34px;display:flex;justify
 <header class="top">
   <a class="brand" href="#beranda" aria-label="SwingPay beranda">
     <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fb2ff"/><stop offset="1" stop-color="#2f6bff"/></linearGradient></defs><path d="M24 4 6 44h9l3.4-8.6h11.2L33 44h9L24 4Zm0 17 4.4 10.4h-8.8L24 21Z" fill="url(#lg)"/><path d="M14 44c6-7 14-7 20 0" stroke="#3db8ff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".7"/></svg>
-    <span><b>SwingPay</b><small>Powered by Arc</small></span>
+    <span><b>SwingPay</b><small>Pintu lintas Arc</small></span>
   </a>
   <nav class="topnav" aria-label="Menu utama">
     <a href="#beranda" data-go="beranda" class="on">Beranda</a>
@@ -252,7 +263,7 @@ footer{border-top:1px solid var(--stroke);padding:18px 34px;display:flex;justify
     <div class="sidefoot">
       <svg width="54" height="54" viewBox="0 0 48 48" aria-hidden="true" style="margin:0 auto"><path d="M24 4 6 44h9l3.4-8.6h11.2L33 44h9L24 4Zm0 17 4.4 10.4h-8.8L24 21Z" fill="url(#lg)"/></svg>
       <b>Arc Network</b>
-      <p>The Chain for What's Next</p>
+      <p>Economic OS for the internet</p>
       <div class="live"><span class="dot" id="liveDot"></span><span id="liveTxt">Live di Arc Mainnet</span></div>
     </div>
   </aside>
@@ -269,31 +280,40 @@ footer{border-top:1px solid var(--stroke);padding:18px 34px;display:flex;justify
         <ellipse cx="230" cy="330" rx="300" ry="170" fill="none" stroke="#5fb6ff" stroke-opacity=".55" stroke-width="1.5"/>
         <path d="M230 20 150 240h34l14-38h64l14 38h34L230 20Zm0 78 24 66h-48l24-66Z" fill="url(#ag)" opacity=".92"/>
       </svg>
-      <h1>Bridge • Swap • Kirim<span class="l2">Semua di Satu Tempat</span></h1>
-      <p>SwingPay adalah pintu masuk ke ekosistem Arc. Kirim USDC dan EURC langsung dari wallet kamu, siapkan bridge dari jaringan lain lewat Circle CCTP, dan sambungkan fiat lewat on-ramp dan off-ramp.</p>
-      <div class="stats">
-        <div class="stat"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></i><div><b>20+</b><span>Blockchain terhubung</span></div></div>
-        <div class="stat"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c.5-.9 1.4-1.3 2.5-1.3s2.2.6 2.2 1.7c0 2.2-4.4 1.1-4.4 3.3 0 1 1 1.7 2.3 1.7 1 0 1.9-.4 2.4-1.2"/></svg></i><div><b>USDC</b><span>Gas native di Arc</span></div></div>
-        <div class="stat"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></i><div><b>Fiat</b><span>IDR &amp; global</span></div></div>
-        <div class="stat"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m13 3-8 11h6l-1 7 8-11h-6l1-7Z"/></svg></i><div><b>Non-custodial</b><span>Kunci tetap di wallet kamu</span></div></div>
-      </div>
+      <h1>Pintu lintas Arc<span class="l2">Masuk dari mana saja, selesai di Arc</span></h1>
+      <p>SwingPay memudahkan akses ke ekosistem Arc. Bawa USDC dari jaringan lain, tukar stablecoin, lalu selesaikan pembayaran on-chain. Kirim USDC dan EURC di Arc sudah live dan non-custodial, kunci tetap di wallet kamu.</p>
     </section>
+
+    <ol class="path" aria-label="Alur SwingPay">
+      <li><a class="step" href="#bridge" data-go="bridge">
+        <div class="h"><b>Access</b><span class="tag soon">Segera</span></div>
+        <p>Masuk ke Arc dari Ethereum, Solana, Base, dan jaringan lain lewat Bridge (USDC via Circle CCTP).</p>
+      </a></li>
+      <li><a class="step" href="#swap" data-go="swap">
+        <div class="h"><b>Liquidity</b><span class="tag soon">Segera</span></div>
+        <p>Tukar USDC, EURC, dan stablecoin lokal di Arc, tanpa keluar dari satu antarmuka.</p>
+      </a></li>
+      <li><a class="step" href="#kirim" data-go="kirim">
+        <div class="h"><b>Settlement</b><span class="tag ok">Live</span></div>
+        <p>Kirim USDC dan EURC langsung di Arc. Transaksi asli on-chain dan bisa dicek di explorer.</p>
+      </a></li>
+    </ol>
 
     <div class="grid">
       <!-- ============ LEFT COLUMN ============ -->
       <div class="col">
         <section class="card" aria-label="Aksi utama">
           <div class="tabs" role="tablist">
-            <button role="tab" id="tab-bridge" aria-selected="true" aria-controls="p-bridge" data-tab="bridge">Bridge</button>
+            <button role="tab" id="tab-bridge" aria-selected="false" aria-controls="p-bridge" data-tab="bridge">Bridge</button>
             <button role="tab" id="tab-swap" aria-selected="false" aria-controls="p-swap" data-tab="swap">Swap</button>
-            <button role="tab" id="tab-kirim" aria-selected="false" aria-controls="p-kirim" data-tab="kirim">Kirim</button>
+            <button role="tab" id="tab-kirim" aria-selected="true" aria-controls="p-kirim" data-tab="kirim">Kirim</button>
             <button role="tab" id="tab-buysell" aria-selected="false" aria-controls="p-buysell" data-tab="buysell">Buy / Sell</button>
           </div>
 
           <!-- BRIDGE -->
-          <div class="panel" id="p-bridge" role="tabpanel" aria-labelledby="tab-bridge">
+          <div class="panel" id="p-bridge" role="tabpanel" aria-labelledby="tab-bridge" hidden>
             <div class="box">
-              <div class="row"><span>Dari</span>
+              <div class="row"><span>Dari jaringan lain</span>
                 <span class="sel"><select id="brFrom" class="netsel" aria-label="Jaringan asal"></select></span>
               </div>
               <div class="field">
@@ -303,7 +323,7 @@ footer{border-top:1px solid var(--stroke);padding:18px 34px;display:flex;justify
             </div>
             <div class="flip" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0-5-5m5 5 5-5"/></svg></div>
             <div class="box">
-              <div class="row"><span>Ke</span><strong>Arc</strong></div>
+              <div class="row"><span>Tujuan (selalu Arc)</span><strong>Arc</strong></div>
               <div class="field">
                 <span class="sel"><select aria-label="Token tujuan"><option>USDC</option></select></span>
                 <div class="amt"><input id="brOut" readonly placeholder="0.00" aria-label="Estimasi diterima"><small>Diterima di Arc, 1:1 (USDC ke USDC)</small></div>
@@ -325,7 +345,8 @@ footer{border-top:1px solid var(--stroke);padding:18px 34px;display:flex;justify
           </div>
 
           <!-- KIRIM (nyata) -->
-          <div class="panel" id="p-kirim" role="tabpanel" aria-labelledby="tab-kirim" hidden>
+          <div class="panel" id="p-kirim" role="tabpanel" aria-labelledby="tab-kirim">
+            <div class="netfix"><span class="dot" aria-hidden="true"></span><span>Dikirim di jaringan <b id="sendNet">Arc Mainnet</b>. Wallet akan diminta pindah ke Arc otomatis.</span></div>
             <div class="box">
               <div class="row"><span>Token</span><span id="sendBal">Saldo: —</span></div>
               <div class="field">
@@ -350,9 +371,9 @@ footer{border-top:1px solid var(--stroke);padding:18px 34px;display:flex;justify
         </section>
 
         <section class="card" id="jaringan">
-          <h2>Jaringan yang didukung <span class="tag">Lewat CCTP</span></h2>
+          <h2>Masuk ke Arc dari <span class="tag">Sumber Bridge</span></h2>
           <div class="chains" id="chains"></div>
-          <p class="hint">Daftar akhir mengikuti jaringan yang didukung Circle. Bridge aktif satu per satu setelah diuji.</p>
+          <p class="hint">Jaringan ini hanya titik masuk. Swap dan pengiriman terjadi di Arc. Daftar akhir mengikuti jaringan yang didukung Circle CCTP, dan bridge aktif satu per satu setelah diuji.</p>
         </section>
 
         <section class="card" id="fiat">
@@ -398,8 +419,11 @@ footer{border-top:1px solid var(--stroke);padding:18px 34px;display:flex;justify
 </div>
 
 <footer>
-  <span>SwingPay · Arc</span>
-  <span>Jembatan antara dunia nyata dan Web3 · non-custodial, kunci tidak pernah meninggalkan wallet kamu</span>
+  <span>SwingPay · pintu lintas Arc: Access, Liquidity, Settlement</span>
+  <span class="links">
+    <a href="https://github.com/Akbarlatama/swing-pay" target="_blank" rel="noopener">Kode di GitHub</a>
+    <a href="https://explorer.arc.io" target="_blank" rel="noopener">Arc Explorer</a>
+  </span>
 </footer>
 
 <!-- wallet modal -->
@@ -489,7 +513,7 @@ function selectTab(k){
 function go(k){
   if(TABS.includes(k)){selectTab(k);$("#p-"+k).closest(".card").scrollIntoView({behavior:"smooth",block:"start"})}
   else{const el=$("#"+k);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})}
-  $$("[data-go]").forEach(a=>{if(a.tagName==="A")a.classList.toggle("on",a.dataset.go===k)});
+  $$("[data-go]").forEach(a=>{if(a.tagName==="A"&&(a.closest(".topnav")||a.closest(".side")))a.classList.toggle("on",a.dataset.go===k)});
 }
 document.addEventListener("click",e=>{
   const a=e.target.closest("[data-go]"); if(a){e.preventDefault();go(a.dataset.go)}
@@ -509,6 +533,7 @@ function setNet(k){
   $("#liveTxt").textContent="Live di "+n.name;
   $("#liveDot").className="dot"+(k==="testnet"?" warn":"");
   $("#sendSub").textContent="Jaringan "+n.name;
+  $("#sendNet").textContent=n.name;
   refreshBalances(); renderHist();
 }
 async function ensureArc(){
@@ -646,7 +671,7 @@ function loadAppKit(){
       networks:[arc,arcT],
       defaultNetwork:S.net==="testnet"?arcT:arc,
       projectId:REOWN_PROJECT_ID,
-      metadata:{name:"SwingPay",description:"Bridge, swap, dan kirim di Arc",url:location.origin,icons:[location.origin+"/favicon.ico"]},
+      metadata:{name:"SwingPay",description:"Pintu lintas Arc: bridge, swap, dan kirim",url:location.origin,icons:[location.origin+"/favicon.ico"]},
       themeMode:"dark",
       themeVariables:{"--w3m-accent":"#2f7bff","--w3m-border-radius-master":"2px"},
       features:{analytics:false,email:false,socials:[],onramp:false,swaps:false}
