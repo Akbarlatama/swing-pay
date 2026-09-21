@@ -439,10 +439,12 @@ const TOKENS = [
   ["ZARU","#0f7a3e"],["CADD","#c8102e"],["AUDD","#00843d"],["GBPA","#1f3a93"],["EURAU","#2a4ea6"],
   ["AUDF","#00843d"],["BRLA","#1a9b4b"],["CHFAU","#d52b1e"],["MXNB","#0b7a4b"],["QCAD","#c8102e"],["SEKAU","#0a5ea8"],["TRYB","#c8102e"]
 ];
-const FIAT = [["🇮🇩","IDR","Rupiah"],["🇺🇸","USD","US Dollar"],["🇪🇺","EUR","Euro"],["🇯","JPY","Yen"],["🇰🇷","KRW","Won"],["🇦🇺","AUD","Dolar Australia"],["🇬","GBP","Pound Sterling"]];
+const FIAT = [["🇮🇩","IDR","Rupiah"],["🇺🇸","USD","US Dollar"],["🇪🇺","EUR","Euro"],["🇯🇵","JPY","Yen"],["🇰🇷","KRW","Won"],["🇦🇺","AUD","Dolar Australia"],["🇬🇧","GBP","Pound Sterling"]];
 
 /* ================= STATE ================= */
-const S = { net:"mainnet", wallets:new Map(), w:null, account:null, bal:{USDC:null,EURC:null}, hist:[], allTok:false };
+const REOWN_PROJECT_ID = "ea4731f7734174fd8c53c201276a7c38";
+const S = { net:"mainnet", wallets:new Map(), w:null, account:null, bal:{USDC:null,EURC:null}, hist:[], allTok:false, wcProv:null, wcAcc:null, wcNets:null };
+let appkit=null, appkitLoading=null, appkitErr="";
 const $ = (s,r=document)=>r.querySelector(s);
 const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
 const NET = ()=>NETS[S.net];
@@ -511,6 +513,11 @@ function setNet(k){
 }
 async function ensureArc(){
   const n=NET(), p=S.w.provider;
+  if(S.w.viaAppKit&&appkit&&S.wcNets){
+    await appkit.switchNetwork(S.wcNets[S.net]);
+    await new Promise(r=>setTimeout(r,700));
+    return;
+  }
   const cur=await p.request({method:"eth_chainId"});
   if(String(cur).toLowerCase()===n.hex) return;
   try{
@@ -527,14 +534,22 @@ window.addEventListener("eip6963:announceProvider",e=>{S.wallets.set(e.detail.in
 window.dispatchEvent(new Event("eip6963:requestProvider"));
 function walletList(){
   const l=[...S.wallets.values()];
-  if(!l.length&&window.ethereum){
-    const provs=Array.isArray(window.ethereum.providers)?window.ethereum.providers:[window.ethereum];
-    provs.forEach((p,i)=>l.push({info:{uuid:"legacy"+i,name:p.isRabby?"Rabby Wallet":p.isMetaMask?"MetaMask":p.isOkxWallet?"OKX Wallet":"Wallet browser",icon:""},provider:p}));
-  }
+  const seen=new Set(l.map(w=>w.provider));
+  const add=(p,name)=>{if(p&&typeof p.request==="function"&&!seen.has(p)){seen.add(p);l.push({info:{uuid:"legacy-"+l.length,name,icon:""},provider:p})}};
+  const e=window.ethereum;
+  if(e){(Array.isArray(e.providers)?e.providers:[e]).forEach(p=>add(p,p.isRabby?"Rabby Wallet":p.isPhantom?"Phantom":(p.isOkxWallet||p.isOKExWallet)?"OKX Wallet":p.isTrust?"Trust Wallet":p.isMetaMask?"MetaMask":"Wallet browser"))}
+  add(window.okxwallet,"OKX Wallet");
+  add(window.phantom&&window.phantom.ethereum,"Phantom");
+  add(window.rabby,"Rabby Wallet");
   return l;
 }
 function openModal(){
-  renderWalletList(); $("#veil").classList.add("open"); setTimeout(()=>{const b=$("#mBody button");if(b)b.focus();else $("#mClose").focus()},0);
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+  renderWalletList(); $("#veil").classList.add("open");
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+  renderWalletList();
+  setTimeout(renderWalletList,600);
+  setTimeout(()=>{const b=$("#mBody button, #mBody a");if(b)b.focus();else $("#mClose").focus()},50);
 }
 function closeModal(){$("#veil").classList.remove("open")}
 $("#mClose").onclick=closeModal;
@@ -547,14 +562,23 @@ function renderWalletList(){
     $("#mTitle").textContent="Wallet terhubung";
     $("#mSub").textContent=S.w.info.name+" · "+short(S.account);
     const c=mk("button","wopt","Salin alamat");c.onclick=async()=>{try{await navigator.clipboard.writeText(S.account);toast("Alamat disalin")}catch{toast("Gagal menyalin alamat")}};
-    const x=mk("button","wopt","Putuskan dari SwingPay");x.onclick=()=>{disconnect();closeModal()};
+    const x=mk("button","wopt","Putuskan dari SwingPay");x.onclick=()=>{userDisconnect();closeModal()};
     body.append(c,x); return;
   }
   $("#mTitle").textContent="Hubungkan wallet";
   const l=walletList();
   if(!l.length){
-    $("#mSub").textContent="Tidak ada wallet EVM yang terdeteksi.";
-    body.innerHTML='<p style="color:var(--mute);font-size:13px">Pasang MetaMask, Rabby, OKX Wallet, atau wallet EVM lain, lalu muat ulang halaman ini. Di ponsel, buka SwingPay dari browser di dalam aplikasi wallet.</p>';
+    $("#mSub").textContent="Pilihan wallet belum bisa dimuat"+(appkitErr?" ("+appkitErr.slice(0,80)+")":"")+". Coba lagi atau buka SwingPay lewat browser di dalam aplikasi wallet:";
+    const rt=mk("button","wopt","Coba WalletConnect lagi");rt.onclick=async()=>{closeModal();try{const k=await loadAppKit();await k.open({view:"Connect"})}catch(e){toast("Masih gagal: "+((e&&e.message)||"tidak diketahui").slice(0,80));openModal()}};body.append(rt);
+    const host=location.host+location.pathname, full=encodeURIComponent(location.origin+location.pathname);
+    [["MetaMask","https://metamask.app.link/dapp/"+host],
+     ["OKX Wallet","okx://wallet/dapp/url?dappUrl="+full],
+     ["Phantom","https://phantom.app/ul/browse/"+full+"?ref="+encodeURIComponent(location.origin)],
+     ["Trust Wallet","https://link.trustwallet.com/open_url?coin_id=60&url="+full]
+    ].forEach(([n,u])=>{const a=mk("a","wopt","Buka di "+n);a.href=u;body.append(a)});
+    const n=document.createElement("p");n.style.cssText="color:var(--mute);font-size:12.5px;margin-top:6px";
+    n.textContent="Rabby: buka aplikasi Rabby, masuk ke menu Dapps atau Browser, lalu ketik swingpay.my.id. Di desktop, pastikan ekstensi wallet diizinkan untuk situs ini lalu muat ulang halaman.";
+    body.append(n);
     return;
   }
   $("#mSub").textContent="Pilih wallet EVM yang terpasang di browser kamu.";
@@ -595,7 +619,67 @@ async function silentReconnect(){
   const w=walletList().find(x=>(x.info.rdns||x.info.name)===want); if(!w) return;
   try{const acc=await w.provider.request({method:"eth_accounts"});if(acc&&acc[0])attach(w,acc[0])}catch{}
 }
-$("#walletBtn").addEventListener("click",openModal);
+$("#walletBtn").addEventListener("click",onWalletClick);
+
+/* ================= WALLETCONNECT (Reown AppKit) ================= */
+function loadAppKit(){
+  if(appkit) return Promise.resolve(appkit);
+  if(appkitLoading) return appkitLoading;
+  appkitLoading=(async()=>{
+    const B="https://esm.sh/";
+    const [core,eth,nets]=await Promise.all([
+      import(B+"@reown/appkit"),
+      import(B+"@reown/appkit-adapter-ethers"),
+      import(B+"@reown/appkit/networks")
+    ]);
+    const mk=(n,http,ex)=>{
+      const def={id:n.chainId,caipNetworkId:"eip155:"+n.chainId,chainNamespace:"eip155",name:n.name,
+        nativeCurrency:{decimals:18,name:"USDC",symbol:"USDC"},
+        rpcUrls:{default:{http}},blockExplorers:{default:{name:"Arc Explorer",url:ex}}};
+      return typeof nets.defineChain==="function"?nets.defineChain(def):def;
+    };
+    const arc=mk(NETS.mainnet,NETS.mainnet.rpc,NETS.mainnet.explorer);
+    const arcT=mk(NETS.testnet,NETS.testnet.rpc,NETS.testnet.explorer);
+    S.wcNets={mainnet:arc,testnet:arcT};
+    const kit=core.createAppKit({
+      adapters:[new eth.EthersAdapter()],
+      networks:[arc,arcT],
+      defaultNetwork:S.net==="testnet"?arcT:arc,
+      projectId:REOWN_PROJECT_ID,
+      metadata:{name:"SwingPay",description:"Bridge, swap, dan kirim di Arc",url:location.origin,icons:[location.origin+"/favicon.ico"]},
+      themeMode:"dark",
+      themeVariables:{"--w3m-accent":"#2f7bff","--w3m-border-radius-master":"2px"},
+      features:{analytics:false,email:false,socials:[],onramp:false,swaps:false}
+    });
+    kit.subscribeProviders(st=>{S.wcProv=(st&&st.eip155)||null;syncWC()});
+    kit.subscribeAccount(a=>{S.wcAcc=(a&&a.isConnected&&a.address)?a.address:null;syncWC()});
+    appkit=kit; appkitErr="";
+    return kit;
+  })().catch(e=>{appkitLoading=null;appkitErr=(e&&e.message)?e.message:String(e);throw e});
+  return appkitLoading;
+}
+function syncWC(){
+  if(S.wcAcc&&S.wcProv){
+    const same=S.w&&S.w.viaAppKit&&S.account&&S.account.toLowerCase()===S.wcAcc.toLowerCase();
+    if(!same){attach({info:{uuid:"appkit",name:"Wallet kamu"},provider:S.wcProv,viaAppKit:true},S.wcAcc);toast("Terhubung: "+short(S.wcAcc))}
+  }else if(S.w&&S.w.viaAppKit&&!S.wcAcc){
+    disconnect();
+  }
+}
+async function onWalletClick(){
+  if(S.account){openModal();return}
+  try{
+    if(!appkit) toast("Memuat pilihan wallet…",2500);
+    const k=await loadAppKit();
+    await k.open({view:"Connect"});
+  }catch(e){
+    openModal(); // cadangan: daftar wallet browser + tautan buka di aplikasi wallet
+  }
+}
+async function userDisconnect(){
+  try{if(S.w&&S.w.viaAppKit&&appkit) await appkit.disconnect()}catch{}
+  disconnect();
+}
 
 /* ================= SALDO ================= */
 async function refreshBalances(){
@@ -647,7 +731,7 @@ $("#sendMax").addEventListener("click",()=>{
 function sendErr(m){$("#sendErr").textContent=m||""}
 $("#sendGo").addEventListener("click",async()=>{
   sendErr("");
-  if(!S.account){openModal();return}
+  if(!S.account){onWalletClick();return}
   const tok=$("#sendTok").value, to=$("#sendTo").value.trim(), units=parseUnits($("#sendAmt").value);
   if(!isAddr(to)) return sendErr("Alamat penerima tidak valid. Harus diawali 0x dan 42 karakter.");
   if(units==null||units<=0n) return sendErr("Masukkan jumlah yang valid (maksimal 6 angka desimal).");
@@ -734,6 +818,7 @@ $("#tokMore").addEventListener("click",()=>{S.allTok=!S.allTok;renderTokens()});
 
 /* ================= INIT ================= */
 loadHist(); renderTokens(); setNet("mainnet"); ui(); paintBalances(); silentReconnect();
+setTimeout(()=>{loadAppKit().catch(()=>{})},600);
 </script>
 </body>
 </html>
