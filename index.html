@@ -3,216 +3,737 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Swing Pay — Kirim USDC di Arc</title>
+<title>SwingPay — Bridge, Swap, dan Kirim di Arc</title>
+<meta name="description" content="SwingPay: satu antarmuka untuk masuk ke ekosistem Arc. Kirim USDC dan EURC, bridge dari jaringan lain, dan siapkan fiat IDR.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
-  --bg:#f6f7fb; --card:#fff; --tx:#10121a; --mut:#6b7280; --line:#e5e7eb;
-  --acc:#5b5bf6; --acc2:#8b5cf6; --ok:#16a34a; --err:#dc2626; --chip:#f1f2f7;
+  --bg:#040a1c; --bg2:#071230; --panel:#08132e; --panel2:#0b1a3d;
+  --line:#16296100; --stroke:#1a2f66; --stroke2:#25408a;
+  --text:#eaf1ff; --mute:#8da2d0; --dim:#5c72a3;
+  --blue:#2f7bff; --blue2:#1d5df0; --cyan:#3db8ff; --green:#2fd48a; --red:#ff6b7a; --amber:#ffb84d;
+  --r:16px;
+  font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
-:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
-  --bg:#0c0d12; --card:#14161f; --tx:#eceef5; --mut:#9aa0b0; --line:#262a36; --chip:#1c1f2b;
-}}
-:root[data-theme="dark"]{--bg:#0c0d12;--card:#14161f;--tx:#eceef5;--mut:#9aa0b0;--line:#262a36;--chip:#1c1f2b;}
-*,*::before,*::after{box-sizing:inherit}
-body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;line-height:1.5}
-.wrap{max-width:480px;margin:0 auto;padding:24px 16px 48px}
-.brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.logo{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;color:#fff;font-weight:700}
-h1{font-size:22px;margin:0}
-.sub{color:var(--mut);font-size:14px;margin:0 0 18px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.chip{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--chip);color:var(--mut)}
-.chip.ok{color:var(--ok)} .chip.err{color:var(--err)}
-label{display:block;font-size:13px;color:var(--mut);margin:14px 0 6px}
-input{width:100%;padding:12px;border-radius:11px;border:1px solid var(--line);background:var(--bg);color:var(--tx);font-size:15px;font-family:inherit}
-button{width:100%;padding:13px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
-button.ghost{background:transparent;border:1px solid var(--line);color:var(--tx);font-weight:500}
-button:disabled{opacity:.5;cursor:not-allowed}
-.stack>*+*{margin-top:9px}
-.bal{font-size:32px;font-weight:700;letter-spacing:-.5px}
-.bal span{font-size:14px;color:var(--mut);font-weight:500;margin-left:6px}
-.wallets{margin-top:12px;display:grid;gap:8px;max-height:300px;overflow-y:auto}
-.w{display:flex;align-items:center;gap:10px;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;text-align:left;color:var(--tx);font-weight:500;font-size:14px;width:100%}
-.w img{width:26px;height:26px;border-radius:7px}
-.w small{margin-left:auto;color:var(--mut);font-weight:400}
-.msg{margin-top:12px;font-size:13px;padding:10px 12px;border-radius:10px;background:var(--chip);color:var(--mut);word-break:break-word}
-.msg.ok{color:var(--ok)} .msg.err{color:var(--err)}
-.foot{text-align:center;font-size:12px;color:var(--mut);margin-top:18px}
-a{color:var(--acc)}
-.hide{display:none}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{background:radial-gradient(1200px 600px at 75% -10%,#0f2a6b55,transparent 60%),var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px}
+svg{display:block}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- top bar ---------- */
+.top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:28px;padding:12px 28px;background:#040a1cd9;backdrop-filter:blur(14px);border-bottom:1px solid var(--stroke)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand b{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.brand small{display:block;font-size:10.5px;color:var(--mute);margin-top:2px}
+.topnav{display:flex;gap:22px;margin-left:8px}
+.topnav a{color:var(--mute);font-weight:600;padding:8px 0;border-bottom:2px solid transparent}
+.topnav a:hover{color:var(--text)}
+.topnav a.on{color:var(--text);border-color:var(--blue)}
+.grow{flex:1}
+.pill{display:flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--stroke2);border-radius:999px;background:var(--panel);font-weight:600;font-size:13px}
+.pill:hover{border-color:var(--blue)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+.dot.off{background:var(--dim);box-shadow:none}
+.dot.warn{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.btn-connect{background:linear-gradient(180deg,var(--blue),var(--blue2));border-color:transparent}
+.netwrap{position:relative}
+.netmenu{position:absolute;right:0;top:calc(100% + 8px);min-width:220px;background:var(--panel2);border:1px solid var(--stroke2);border-radius:14px;padding:6px;display:none;box-shadow:0 20px 50px #000a}
+.netmenu.open{display:block}
+.netmenu button{display:flex;width:100%;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;text-align:left;font-weight:600}
+.netmenu button:hover,.netmenu button[aria-checked=true]{background:#14286a}
+.netmenu small{display:block;color:var(--mute);font-weight:500;font-size:11.5px}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:calc(100vh - 62px)}
+.side{border-right:1px solid var(--stroke);padding:22px 16px;display:flex;flex-direction:column;gap:18px;position:sticky;top:62px;height:calc(100vh - 62px)}
+.side nav{display:flex;flex-direction:column;gap:6px}
+.side nav a{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:12px;color:var(--mute);font-weight:600}
+.side nav a:hover{background:#0d1e4a;color:var(--text)}
+.side nav a.on{background:linear-gradient(180deg,#1b56d8,#123a9c);color:#fff;box-shadow:0 8px 24px #1d5df044}
+.side nav svg{width:20px;height:20px;flex:none}
+.sidefoot{margin-top:auto;padding:18px;border:1px solid var(--stroke);border-radius:16px;background:linear-gradient(180deg,#0a173a,#060e26);text-align:center}
+.sidefoot b{display:block;font-size:17px;margin-top:8px}
+.sidefoot p{color:var(--mute);font-size:12px;margin-top:2px}
+.live{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;padding:8px;border:1px solid var(--stroke2);border-radius:999px;font-size:12px}
+
+main{padding:34px 34px 60px;max-width:1240px;width:100%}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding-right:340px;min-height:230px}
+.hero h1{font-size:clamp(34px,4.4vw,52px);line-height:1.08;font-weight:800;letter-spacing:-.03em}
+.hero h1 .l2{color:var(--cyan);display:block}
+.hero p{color:#b9c8ea;max-width:520px;margin-top:16px;font-size:15px}
+.hero .glow{position:absolute;right:-20px;top:-40px;width:420px;height:300px;pointer-events:none}
+.stats{display:flex;flex-wrap:wrap;gap:28px;margin-top:26px}
+.stat{display:flex;align-items:center;gap:12px}
+.stat i{width:40px;height:40px;border:1px solid var(--stroke2);border-radius:12px;display:grid;place-items:center;background:var(--panel);color:var(--cyan)}
+.stat b{display:block;font-size:14px}
+.stat span{color:var(--mute);font-size:12px}
+
+/* ---------- grid ---------- */
+.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;margin-top:30px;align-items:start}
+.col{display:flex;flex-direction:column;gap:22px;min-width:0}
+.card{background:linear-gradient(180deg,#0a1636,#07112b);border:1px solid var(--stroke);border-radius:20px;padding:20px}
+.card h2{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.card h2 a,.card h2 button{font-size:12px;color:var(--cyan);font-weight:600}
+
+/* ---------- swap card ---------- */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);background:#060f26;border:1px solid var(--stroke);border-radius:14px;padding:4px;margin-bottom:16px}
+.tabs button{padding:11px;border-radius:11px;font-weight:700;color:var(--mute)}
+.tabs button[aria-selected=true]{background:linear-gradient(180deg,var(--blue),var(--blue2));color:#fff;box-shadow:0 6px 18px #1d5df055}
+.panel[hidden]{display:none}
+.box{border:1px solid var(--stroke);background:#060f26;border-radius:16px;padding:16px}
+.box+.box{margin-top:10px}
+.box .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;color:var(--mute);font-weight:600}
+.box .row strong{color:var(--text);font-size:15px}
+.field{display:flex;gap:10px;align-items:stretch}
+.sel{position:relative;flex:none}
+.sel select,.netsel{appearance:none;-webkit-appearance:none;background:var(--panel2);border:1px solid var(--stroke2);border-radius:12px;padding:12px 34px 12px 14px;font-weight:700;min-height:52px;min-width:118px;cursor:pointer}
+.sel::after{content:"";position:absolute;right:14px;top:50%;width:7px;height:7px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.sel select option{background:#0b1a3d}
+.amt{flex:1;min-width:0;background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:8px 14px;display:flex;flex-direction:column;justify-content:center}
+.amt input{background:none;border:0;outline:0;font-size:22px;font-weight:700;width:100%;min-width:0}
+.amt input::placeholder{color:#3b4f85}
+.amt small{color:var(--dim);font-size:12px}
+.amt:focus-within{border-color:var(--blue)}
+.max{font-size:12px;font-weight:700;color:var(--cyan);background:#12285e;border-radius:8px;padding:5px 10px;align-self:center}
+.textin{width:100%;background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:14px;outline:0;font-weight:600}
+.textin:focus{border-color:var(--blue)}
+.flip{display:grid;place-items:center;width:40px;height:40px;margin:-14px auto -14px;position:relative;z-index:2;border-radius:50%;background:var(--panel2);border:1px solid var(--stroke2)}
+.cta{width:100%;margin-top:16px;padding:16px;border-radius:14px;font-weight:800;font-size:16px;background:linear-gradient(180deg,#3a86ff,#1d5df0);box-shadow:0 10px 30px #1d5df044}
+.cta:hover:not(:disabled){filter:brightness(1.1)}
+.cta:disabled{background:#12285e;color:var(--mute);box-shadow:none;cursor:not-allowed}
+.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;padding:12px;border:1px solid var(--stroke);border-radius:14px;background:#060f26}
+.meta div{font-size:12px;color:var(--mute)}
+.meta b{display:block;color:var(--text);font-size:13px;margin-top:2px}
+.hint{color:var(--mute);font-size:12.5px;margin-top:12px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#14286a;color:var(--cyan)}
+.tag.soon{background:#2a2146;color:#c6b4ff}
+.tag.ok{background:#0f3a34;color:var(--green)}
+.err{color:var(--red);font-size:12.5px;margin-top:8px;min-height:1em}
+.soonbox{padding:22px;border:1px dashed var(--stroke2);border-radius:16px;background:#060f26;text-align:center}
+.soonbox b{font-size:16px;display:block;margin:8px 0 6px}
+.soonbox p{color:var(--mute);max-width:420px;margin:0 auto}
+
+/* ---------- assets ---------- */
+.total{border:1px solid var(--stroke);border-radius:16px;padding:16px;background:#060f26}
+.total small{color:var(--mute)}
+.total .big{font-size:34px;font-weight:800;letter-spacing:-.02em;margin:2px 0 14px}
+.total .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.total .acts button{padding:10px;border-radius:999px;border:1px solid var(--stroke2);font-weight:700;font-size:13px;background:var(--panel2)}
+.total .acts button:first-child{background:var(--blue);border-color:transparent}
+.asset{display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--stroke)}
+.asset:last-child{border:0}
+.coin{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;flex:none;color:#fff}
+.asset .n{flex:1;min-width:0}
+.asset .n b{display:block}
+.asset .n small{color:var(--mute)}
+.asset .v{text-align:right;font-weight:700}
+.asset .v small{display:block;color:var(--mute);font-weight:500}
+
+.tokens{display:grid;grid-template-columns:repeat(5,1fr);gap:14px 8px}
+.tk{text-align:center;font-size:12px;font-weight:700}
+.tk .coin{margin:0 auto 6px;width:44px;height:44px}
+.tk.dim{opacity:.55}
+.tk.dim:hover{opacity:.9}
+.legend{color:var(--mute);font-size:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--stroke)}
+
+/* ---------- bottom sections ---------- */
+.chains{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.chain{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px;border:1px solid var(--stroke);border-radius:14px;background:#060f26;font-size:12px;font-weight:600}
+.chain .coin{width:34px;height:34px;font-size:11px}
+.fiat{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.fx{padding:12px 6px;border:1px solid var(--stroke);border-radius:14px;background:#060f26;text-align:center;font-size:12px}
+.fx b{display:block;font-size:14px;margin:4px 0 0}
+.fx span{color:var(--mute)}
+.fx .flag{font-size:20px;line-height:1}
+.tx{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--stroke)}
+.tx:last-child{border:0}
+.tx .n{flex:1;min-width:0}
+.tx .n b{display:block;font-size:13px}
+.tx .n small{color:var(--mute)}
+.tx .v{font-weight:700;font-size:13px;text-align:right}
+.tx .v small{display:block;font-weight:600}
+.empty{color:var(--mute);padding:8px 0 4px}
+
+footer{border-top:1px solid var(--stroke);padding:18px 34px;display:flex;justify-content:space-between;align-items:center;color:var(--mute);font-size:12.5px;gap:16px;flex-wrap:wrap}
+
+/* ---------- modal + toast ---------- */
+.veil{position:fixed;inset:0;background:#02061099;backdrop-filter:blur(4px);display:none;place-items:center;z-index:50;padding:16px}
+.veil.open{display:grid}
+.modal{width:min(420px,100%);background:var(--panel2);border:1px solid var(--stroke2);border-radius:20px;padding:20px;box-shadow:0 30px 80px #000c}
+.modal h3{font-size:18px;margin-bottom:4px}
+.modal p{color:var(--mute);font-size:13px;margin-bottom:14px}
+.wopt{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:1px solid var(--stroke);border-radius:14px;background:#060f26;margin-bottom:8px;font-weight:700;text-align:left}
+.wopt:hover{border-color:var(--blue)}
+.wopt img{width:32px;height:32px;border-radius:8px}
+.modal .close{margin-top:6px;width:100%;padding:12px;color:var(--mute);font-weight:600}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:#0e2260;border:1px solid var(--stroke2);padding:12px 18px;border-radius:14px;font-weight:600;z-index:60;transition:.25s;max-width:min(92vw,460px);text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1100px){
+  .grid{grid-template-columns:1fr}
+  .hero{padding-right:0}
+  .hero .glow{opacity:.35}
+}
+@media (max-width:860px){
+  .shell{grid-template-columns:1fr}
+  .side{display:none}
+  .topnav{display:none}
+  .top{padding:10px 16px;gap:10px}
+  main{padding:22px 16px 48px}
+  .chains{grid-template-columns:repeat(3,1fr)}
+  .fiat{grid-template-columns:repeat(4,1fr)}
+  .tokens{grid-template-columns:repeat(4,1fr)}
+  .meta{grid-template-columns:repeat(2,1fr)}
+  .brand small{display:none}
+  .pill .addr-long{display:none}
+}
+@media (max-width:480px){
+  .fiat{grid-template-columns:repeat(3,1fr)}
+  .tabs button{padding:10px 4px;font-size:13px}
+  .field{flex-direction:column}
+  .sel select{width:100%}
+  .sel{width:100%}
+  .netwrap .pill span.nm{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="brand"><div class="logo">S</div><h1>Swing Pay</h1></div>
-  <p class="sub">Kirim USDC di jaringan <b>Arc</b> — non-custodial, transaksi asli on-chain.</p>
 
-  <div class="card">
-    <div class="row">
-      <div id="who" style="font-weight:600;font-size:15px">Belum terhubung</div>
-      <div class="chip" id="netChip">—</div>
+<!-- ============ TOP BAR ============ -->
+<header class="top">
+  <a class="brand" href="#beranda" aria-label="SwingPay beranda">
+    <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fb2ff"/><stop offset="1" stop-color="#2f6bff"/></linearGradient></defs><path d="M24 4 6 44h9l3.4-8.6h11.2L33 44h9L24 4Zm0 17 4.4 10.4h-8.8L24 21Z" fill="url(#lg)"/><path d="M14 44c6-7 14-7 20 0" stroke="#3db8ff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".7"/></svg>
+    <span><b>SwingPay</b><small>Powered by Arc</small></span>
+  </a>
+  <nav class="topnav" aria-label="Menu utama">
+    <a href="#beranda" data-go="beranda" class="on">Beranda</a>
+    <a href="#bridge" data-go="bridge">Bridge</a>
+    <a href="#swap" data-go="swap">Swap</a>
+    <a href="#kirim" data-go="kirim">Kirim</a>
+    <a href="#buysell" data-go="buysell">Buy / Sell</a>
+    <a href="#portofolio" data-go="portofolio">Portofolio</a>
+    <a href="#riwayat" data-go="riwayat">Riwayat</a>
+  </nav>
+  <div class="grow"></div>
+  <button class="pill btn-connect" id="walletBtn" type="button"><span class="dot off" id="walletDot"></span><span id="walletLabel">Hubungkan wallet</span></button>
+  <div class="netwrap">
+    <button class="pill" id="netBtn" type="button" aria-haspopup="true" aria-expanded="false"><span class="dot" id="netDot"></span><span class="nm" id="netName">Arc Mainnet</span></button>
+    <div class="netmenu" id="netMenu" role="menu">
+      <button type="button" role="menuitemradio" data-net="mainnet" aria-checked="true"><span class="dot"></span><span>Arc Mainnet<small>Chain ID 5042</small></span></button>
+      <button type="button" role="menuitemradio" data-net="testnet" aria-checked="false"><span class="dot warn"></span><span>Arc Testnet<small>Chain ID 5042002 · untuk uji coba</small></span></button>
     </div>
-    <div id="discon">
-      <p class="sub" style="margin:10px 0 0">Semua dompet EVM didukung: MetaMask, Rabby, OKX, Trust, Coinbase, Bitget, dan lainnya.</p>
-      <div class="wallets" id="list"></div>
-      <div class="stack" style="margin-top:10px">
-        <button class="ghost" id="rescan">Dompet tidak muncul? Pindai ulang</button>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="side">
+    <nav aria-label="Menu samping">
+      <a href="#beranda" data-go="beranda" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9Z"/></svg>Home</a>
+      <a href="#bridge" data-go="bridge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14m-4-4 4 4-4 4M20 16H6m4-4-4 4 4 4"/></svg>Bridge</a>
+      <a href="#swap" data-go="swap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16m0 0-3-3m3 3 3-3M17 20V4m0 0-3 3m3-3 3 3"/></svg>Swap</a>
+      <a href="#kirim" data-go="kirim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z"/></svg>Kirim</a>
+      <a href="#buysell" data-go="buysell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>Buy / Sell</a>
+      <a href="#tokens" data-go="tokens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="9" cy="8" rx="6" ry="4"/><path d="M3 8v4c0 2.2 2.7 4 6 4M15 12c3.3 0 6 1.8 6 4s-2.7 4-6 4-6-1.8-6-4 2.7-4 6-4Z"/></svg>Token</a>
+      <a href="#fiat" data-go="fiat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.2c-.6-.8-1.5-1.2-2.6-1.2-1.5 0-2.6.8-2.6 2 0 3 5.4 1.4 5.4 4.2 0 1.2-1.2 2-2.8 2-1.2 0-2.2-.5-2.8-1.4M12 6v2m0 8v2"/></svg>Fiat</a>
+      <a href="#riwayat" data-go="riwayat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-4v4h4M12 7v5l3 2"/></svg>Riwayat</a>
+    </nav>
+    <div class="sidefoot">
+      <svg width="54" height="54" viewBox="0 0 48 48" aria-hidden="true" style="margin:0 auto"><path d="M24 4 6 44h9l3.4-8.6h11.2L33 44h9L24 4Zm0 17 4.4 10.4h-8.8L24 21Z" fill="url(#lg)"/></svg>
+      <b>Arc Network</b>
+      <p>The Chain for What's Next</p>
+      <div class="live"><span class="dot" id="liveDot"></span><span id="liveTxt">Live di Arc Mainnet</span></div>
+    </div>
+  </aside>
+
+  <main id="beranda">
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <svg class="glow" viewBox="0 0 420 300" aria-hidden="true">
+        <defs>
+          <radialGradient id="pl" cx=".5" cy="1.1" r=".9"><stop offset="0" stop-color="#3db8ff" stop-opacity=".9"/><stop offset=".45" stop-color="#1d5df0" stop-opacity=".45"/><stop offset="1" stop-color="#040a1c" stop-opacity="0"/></radialGradient>
+          <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe2ff"/><stop offset="1" stop-color="#2f6bff"/></linearGradient>
+        </defs>
+        <ellipse cx="230" cy="330" rx="330" ry="190" fill="url(#pl)"/>
+        <ellipse cx="230" cy="330" rx="300" ry="170" fill="none" stroke="#5fb6ff" stroke-opacity=".55" stroke-width="1.5"/>
+        <path d="M230 20 150 240h34l14-38h64l14 38h34L230 20Zm0 78 24 66h-48l24-66Z" fill="url(#ag)" opacity=".92"/>
+      </svg>
+      <h1>Bridge • Swap • Kirim<span class="l2">Semua di Satu Tempat</span></h1>
+      <p>SwingPay adalah pintu masuk ke ekosistem Arc. Kirim USDC dan EURC langsung dari wallet kamu, siapkan bridge dari jaringan lain lewat Circle CCTP, dan sambungkan fiat lewat on-ramp dan off-ramp.</p>
+      <div class="stats">
+        <div class="stat"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></i><div><b>20+</b><span>Blockchain terhubung</span></div></div>
+        <div class="stat"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c.5-.9 1.4-1.3 2.5-1.3s2.2.6 2.2 1.7c0 2.2-4.4 1.1-4.4 3.3 0 1 1 1.7 2.3 1.7 1 0 1.9-.4 2.4-1.2"/></svg></i><div><b>USDC</b><span>Gas native di Arc</span></div></div>
+        <div class="stat"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></i><div><b>Fiat</b><span>IDR &amp; global</span></div></div>
+        <div class="stat"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m13 3-8 11h6l-1 7 8-11h-6l1-7Z"/></svg></i><div><b>Non-custodial</b><span>Kunci tetap di wallet kamu</span></div></div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <!-- ============ LEFT COLUMN ============ -->
+      <div class="col">
+        <section class="card" aria-label="Aksi utama">
+          <div class="tabs" role="tablist">
+            <button role="tab" id="tab-bridge" aria-selected="true" aria-controls="p-bridge" data-tab="bridge">Bridge</button>
+            <button role="tab" id="tab-swap" aria-selected="false" aria-controls="p-swap" data-tab="swap">Swap</button>
+            <button role="tab" id="tab-kirim" aria-selected="false" aria-controls="p-kirim" data-tab="kirim">Kirim</button>
+            <button role="tab" id="tab-buysell" aria-selected="false" aria-controls="p-buysell" data-tab="buysell">Buy / Sell</button>
+          </div>
+
+          <!-- BRIDGE -->
+          <div class="panel" id="p-bridge" role="tabpanel" aria-labelledby="tab-bridge">
+            <div class="box">
+              <div class="row"><span>Dari</span>
+                <span class="sel"><select id="brFrom" class="netsel" aria-label="Jaringan asal"></select></span>
+              </div>
+              <div class="field">
+                <span class="sel"><select id="brTok" aria-label="Token asal"><option>USDC</option></select></span>
+                <label class="amt"><span class="sr">Jumlah</span><input id="brAmt" inputmode="decimal" placeholder="0.00" autocomplete="off"><small id="brAmtSub">Bridge USDC via Circle CCTP</small></label>
+              </div>
+            </div>
+            <div class="flip" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0-5-5m5 5 5-5"/></svg></div>
+            <div class="box">
+              <div class="row"><span>Ke</span><strong>Arc</strong></div>
+              <div class="field">
+                <span class="sel"><select aria-label="Token tujuan"><option>USDC</option></select></span>
+                <div class="amt"><input id="brOut" readonly placeholder="0.00" aria-label="Estimasi diterima"><small>Diterima di Arc, 1:1 (USDC ke USDC)</small></div>
+              </div>
+            </div>
+            <button class="cta" id="brGo" type="button" disabled>Bridge segera hadir</button>
+            <div class="meta">
+              <div>Estimasi waktu<b>Menyusul</b></div>
+              <div>Biaya jaringan<b>Menyusul</b></div>
+              <div>Slippage<b>0% (tanpa swap)</b></div>
+              <div>Powered by<b>Circle CCTP</b></div>
+            </div>
+            <p class="hint">Bridge hanya untuk USDC dulu. Aset lain seperti ETH harus ditukar ke USDC di jaringan asal sebelum di-bridge, karena tidak semua token otomatis bisa masuk ke Arc.</p>
+          </div>
+
+          <!-- SWAP -->
+          <div class="panel" id="p-swap" role="tabpanel" aria-labelledby="tab-swap" hidden>
+            <div class="soonbox"><span class="tag soon">Segera hadir</span><b>Swap di Arc</b><p>Tukar USDC, EURC, dan stablecoin lokal langsung di Arc. Swap aktif setelah rute likuiditas dan kontraknya selesai diverifikasi.</p></div>
+          </div>
+
+          <!-- KIRIM (nyata) -->
+          <div class="panel" id="p-kirim" role="tabpanel" aria-labelledby="tab-kirim" hidden>
+            <div class="box">
+              <div class="row"><span>Token</span><span id="sendBal">Saldo: —</span></div>
+              <div class="field">
+                <span class="sel"><select id="sendTok" aria-label="Token"><option value="USDC">USDC</option><option value="EURC">EURC</option></select></span>
+                <label class="amt"><span class="sr">Jumlah</span><input id="sendAmt" inputmode="decimal" placeholder="0.00" autocomplete="off"><small id="sendSub">Jaringan Arc</small></label>
+                <button class="max" id="sendMax" type="button">Maks</button>
+              </div>
+            </div>
+            <div class="box">
+              <div class="row"><span>Alamat penerima</span></div>
+              <input class="textin" id="sendTo" placeholder="0x…" autocomplete="off" spellcheck="false" aria-label="Alamat penerima">
+            </div>
+            <div class="err" id="sendErr" role="alert"></div>
+            <button class="cta" id="sendGo" type="button">Hubungkan wallet</button>
+            <p class="hint">Transaksi ditandatangani di wallet kamu dan dikirim on-chain. Cek alamat penerima dua kali, transfer tidak bisa dibatalkan.</p>
+          </div>
+
+          <!-- BUY / SELL -->
+          <div class="panel" id="p-buysell" role="tabpanel" aria-labelledby="tab-buysell" hidden>
+            <div class="soonbox"><span class="tag soon">Segera hadir</span><b>Beli dan jual lewat rekening</b><p>On-ramp dan off-ramp untuk IDR sedang disiapkan. Begitu aktif, kamu bisa top up dari rekening bank dan tarik saldo USDC ke rupiah.</p></div>
+          </div>
+        </section>
+
+        <section class="card" id="jaringan">
+          <h2>Jaringan yang didukung <span class="tag">Lewat CCTP</span></h2>
+          <div class="chains" id="chains"></div>
+          <p class="hint">Daftar akhir mengikuti jaringan yang didukung Circle. Bridge aktif satu per satu setelah diuji.</p>
+        </section>
+
+        <section class="card" id="fiat">
+          <h2>Fiat (IDR &amp; global)</h2>
+          <div class="fiat" id="fiatGrid"></div>
+          <p class="hint">IDR disiapkan sebagai on-ramp dan off-ramp, bukan token Arc, sampai ada penerbit dan kontrak yang benar-benar tersedia.</p>
+        </section>
+      </div>
+
+      <!-- ============ RIGHT COLUMN ============ -->
+      <div class="col">
+        <section class="card" id="portofolio">
+          <h2>Aset kamu di Arc</h2>
+          <div class="total">
+            <small>Saldo USDC</small>
+            <div class="big" id="totalBig">—</div>
+            <div class="acts">
+              <button type="button" data-go="buysell">Deposit</button>
+              <button type="button" data-go="bridge">Bridge</button>
+              <button type="button" data-go="kirim">Kirim</button>
+            </div>
+          </div>
+          <div id="assets">
+            <div class="asset"><div class="coin" style="background:#2775ca">$</div><div class="n"><b>USDC</b><small>USD Coin</small></div><div class="v" id="aUSDC">—</div></div>
+            <div class="asset"><div class="coin" style="background:#3557d6">€</div><div class="n"><b>EURC</b><small>Euro Coin</small></div><div class="v" id="aEURC">—</div></div>
+          </div>
+          <p class="hint" id="assetHint">Hubungkan wallet untuk melihat saldo kamu.</p>
+        </section>
+
+        <section class="card" id="tokens">
+          <h2>Token di Arc Network <button type="button" id="tokMore">Lihat semua token</button></h2>
+          <div class="tokens" id="tokGrid"></div>
+          <p class="legend">Saldo dan kirim aktif untuk USDC dan EURC. Token lain (redup) ditambahkan setelah alamat kontraknya diverifikasi.</p>
+        </section>
+
+        <section class="card" id="riwayat">
+          <h2>Transaksi terbaru <button type="button" id="clearHist">Bersihkan</button></h2>
+          <div id="hist"></div>
+        </section>
       </div>
     </div>
-    <div id="con" class="hide">
-      <div style="margin-top:14px" class="bal"><span id="bal">0.00</span><span>USDC</span></div>
-      <label for="to">Alamat tujuan</label>
-      <input id="to" placeholder="0x..." autocomplete="off" spellcheck="false">
-      <label for="amt">Jumlah</label>
-      <input id="amt" type="number" inputmode="decimal" placeholder="0.00" min="0" step="0.01">
-      <div class="stack" style="margin-top:14px">
-        <button id="send">Kirim USDC</button>
-        <button class="ghost" id="refresh">Refresh saldo</button>
-        <button class="ghost" id="switch">Pindah ke Arc Testnet</button>
-        <button class="ghost" id="dis">Putuskan dompet</button>
-      </div>
-    </div>
-    <div class="msg hide" id="msg"></div>
-  </div>
-
-  <div class="foot">
-    Arc Testnet · 5042002 · <a href="https://faucet.circle.com" target="_blank" rel="noopener">Ambil test USDC ↗</a><br>
-    <a href="https://testnet.arcscan.app" target="_blank" rel="noopener">ArcScan ↗</a>
-  </div>
+  </main>
 </div>
 
+<footer>
+  <span>SwingPay · Arc</span>
+  <span>Jembatan antara dunia nyata dan Web3 · non-custodial, kunci tidak pernah meninggalkan wallet kamu</span>
+</footer>
+
+<!-- wallet modal -->
+<div class="veil" id="veil" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="modal">
+    <h3 id="mTitle">Hubungkan wallet</h3>
+    <p id="mSub">Pilih wallet EVM yang terpasang di browser kamu.</p>
+    <div id="mBody"></div>
+    <button class="close" type="button" id="mClose">Tutup</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
 <script>
-const ARC={chainIdHex:'0x4CEF52',chainIdDec:5042002,chainName:'Arc Testnet',
-  nativeCurrency:{name:'USDC',symbol:'USDC',decimals:18},
-  rpcUrls:['https://rpc.testnet.arc.network'],blockExplorerUrls:['https://testnet.arcscan.app']};
-const USDC='0x3600000000000000000000000000000000000000', DEC=6;
-const $=id=>document.getElementById(id);
-let providers=[], p=null, acct=null, onArc=false, busy=false;
+"use strict";
+/* ================= KONFIGURASI ================= */
+const NETS = {
+  mainnet: {
+    key:"mainnet", name:"Arc Mainnet", chainId:5042, hex:"0x13b2",
+    rpc:["https://rpc.mainnet.arc.io"],
+    explorer:"https://explorer.arc.io",
+    tokens:{ USDC:"0x3600000000000000000000000000000000000000", EURC:"0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1" }
+  },
+  testnet: {
+    key:"testnet", name:"Arc Testnet", chainId:5042002, hex:"0x4cef52",
+    rpc:["https://rpc.testnet.arc.network","https://rpc.testnet.arc.io"],
+    explorer:"https://testnet.arcscan.app",
+    tokens:{ USDC:"0x3600000000000000000000000000000000000000", EURC:"0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a" }
+  }
+};
+const DEC = 6; // antarmuka ERC-20 USDC/EURC di Arc memakai 6 desimal
+const CHAINS = ["Ethereum","Solana","Base","Arbitrum","Polygon","Avalanche","BNB Chain","Optimism","Linea","Unichain","World Chain","dan lainnya"];
+const CHAIN_COL = {Ethereum:"#627eea",Solana:"#9945ff",Base:"#0052ff",Arbitrum:"#2d6fb5",Polygon:"#8247e5",Avalanche:"#e84142","BNB Chain":"#d99e0b",Optimism:"#ff0420",Linea:"#3a3a3a",Unichain:"#f50db4","World Chain":"#2c2c2c","dan lainnya":"#22336b"};
+const TOKENS = [
+  ["USDC","#2775ca",1],["EURC","#3557d6",1],["JPYC","#e0457b"],["KRW1","#3a3f52"],["wBRL","#1a9b4b"],
+  ["wARS","#4ea6dc"],["wCLP","#d5392f"],["wCOP","#e0a800"],["wMXN","#0b7a4b"],["wPEN","#c8102e"],
+  ["ZARU","#0f7a3e"],["CADD","#c8102e"],["AUDD","#00843d"],["GBPA","#1f3a93"],["EURAU","#2a4ea6"],
+  ["AUDF","#00843d"],["BRLA","#1a9b4b"],["CHFAU","#d52b1e"],["MXNB","#0b7a4b"],["QCAD","#c8102e"],["SEKAU","#0a5ea8"],["TRYB","#c8102e"]
+];
+const FIAT = [["🇮🇩","IDR","Rupiah"],["🇺🇸","USD","US Dollar"],["🇪🇺","EUR","Euro"],["🇯","JPY","Yen"],["🇰🇷","KRW","Won"],["🇦🇺","AUD","Dolar Australia"],["🇬","GBP","Pound Sterling"]];
 
-function say(t,k){const m=$('msg');m.textContent=t;m.className='msg'+(k?' '+k:'');m.classList.remove('hide');}
-function clr(){$('msg').classList.add('hide');}
-const short=a=>a.slice(0,6)+'…'+a.slice(-4);
+/* ================= STATE ================= */
+const S = { net:"mainnet", wallets:new Map(), w:null, account:null, bal:{USDC:null,EURC:null}, hist:[], allTok:false };
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const NET = ()=>NETS[S.net];
 
-/* ---------- Penemuan dompet: EIP-6963 + fallback injeksi ---------- */
-function addProvider(info,provider){
-  if(!provider) return;
-  if(providers.some(x=>x.provider===provider||x.info.uuid===info.uuid)) return;
-  providers.push({info,provider}); render();
+/* ================= UTIL ================= */
+function toast(msg,ms=3200){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),ms)}
+const short=a=>a?a.slice(0,6)+"…"+a.slice(-4):"";
+function fmt(units){ // BigInt (6 desimal) -> string
+  if(units==null) return "—";
+  const neg=units<0n; if(neg) units=-units;
+  const base=10n**BigInt(DEC); const whole=units/base; const frac=(units%base).toString().padStart(DEC,"0").slice(0,2);
+  return (neg?"-":"")+whole.toLocaleString("en-US")+"."+frac;
 }
-window.addEventListener('eip6963:announceProvider',e=>addProvider(e.detail.info,e.detail.provider));
-function scan(){
-  window.dispatchEvent(new Event('eip6963:requestProvider'));
-  const eth=window.ethereum;
-  if(!eth) return;
-  const list=Array.isArray(eth.providers)&&eth.providers.length?eth.providers:[eth];
-  list.forEach((pr,i)=>{
-    const name=pr.isRabby?'Rabby':pr.isOkxWallet||pr.isOKExWallet?'OKX Wallet':
-      pr.isCoinbaseWallet?'Coinbase Wallet':pr.isTrust||pr.isTrustWallet?'Trust Wallet':
-      pr.isBitKeep||pr.isBitget?'Bitget Wallet':pr.isPhantom?'Phantom':
-      pr.isBraveWallet?'Brave Wallet':pr.isMetaMask?'MetaMask':'Dompet Terinjeksi '+(i+1);
-    addProvider({uuid:'inj-'+name+i,name,icon:'',rdns:'injected'},pr);
-  });
+function parseUnits(str){
+  str=String(str||"").trim().replace(",",".");
+  if(!/^\d*\.?\d*$/.test(str)||str===""||str===".") return null;
+  const [w,f=""]=str.split(".");
+  if(f.length>DEC) return null;
+  return BigInt(w||"0")*10n**BigInt(DEC)+BigInt((f+"0".repeat(DEC)).slice(0,DEC));
 }
-function render(){
-  const box=$('list'); box.innerHTML='';
-  if(!providers.length){
-    box.innerHTML='<div class="msg">Tidak ada dompet EVM terdeteksi. Buka halaman ini di browser dompet (MetaMask/OKX/Trust) atau pasang ekstensinya.</div>';
+const isAddr=a=>/^0x[0-9a-fA-F]{40}$/.test(a);
+const pad=h=>h.replace(/^0x/,"").toLowerCase().padStart(64,"0");
+async function rpc(method,params=[]){
+  let last;
+  for(const url of NET().rpc){
+    try{
+      const ac=new AbortController(); const to=setTimeout(()=>ac.abort(),8000);
+      const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params}),signal:ac.signal});
+      clearTimeout(to);
+      const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.result;
+    }catch(e){last=e}
+  }
+  throw last||new Error("RPC tidak dapat dijangkau");
+}
+const ago=ts=>{const s=Math.max(1,Math.floor((Date.now()-ts)/1000));if(s<60)return s+" dtk lalu";if(s<3600)return Math.floor(s/60)+" mnt lalu";if(s<86400)return Math.floor(s/3600)+" jam lalu";return Math.floor(s/86400)+" hari lalu"};
+
+/* ================= NAVIGASI ================= */
+const TABS=["bridge","swap","kirim","buysell"];
+function selectTab(k){
+  TABS.forEach(t=>{const on=t===k;$("#tab-"+t).setAttribute("aria-selected",on);$("#p-"+t).hidden=!on});
+}
+function go(k){
+  if(TABS.includes(k)){selectTab(k);$("#p-"+k).closest(".card").scrollIntoView({behavior:"smooth",block:"start"})}
+  else{const el=$("#"+k);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})}
+  $$("[data-go]").forEach(a=>{if(a.tagName==="A")a.classList.toggle("on",a.dataset.go===k)});
+}
+document.addEventListener("click",e=>{
+  const a=e.target.closest("[data-go]"); if(a){e.preventDefault();go(a.dataset.go)}
+  const t=e.target.closest("[data-tab]"); if(t){selectTab(t.dataset.tab)}
+  if(!e.target.closest(".netwrap")) closeNetMenu();
+});
+
+/* ================= JARINGAN ARC ================= */
+function closeNetMenu(){$("#netMenu").classList.remove("open");$("#netBtn").setAttribute("aria-expanded","false")}
+$("#netBtn").addEventListener("click",()=>{const m=$("#netMenu");const o=m.classList.toggle("open");$("#netBtn").setAttribute("aria-expanded",o)});
+$$("#netMenu [data-net]").forEach(b=>b.addEventListener("click",()=>{setNet(b.dataset.net);closeNetMenu()}));
+function setNet(k){
+  S.net=k; const n=NET();
+  $("#netName").textContent=n.name;
+  $("#netDot").className="dot"+(k==="testnet"?" warn":"");
+  $$("#netMenu [data-net]").forEach(b=>b.setAttribute("aria-checked",b.dataset.net===k));
+  $("#liveTxt").textContent="Live di "+n.name;
+  $("#liveDot").className="dot"+(k==="testnet"?" warn":"");
+  $("#sendSub").textContent="Jaringan "+n.name;
+  refreshBalances(); renderHist();
+}
+async function ensureArc(){
+  const n=NET(), p=S.w.provider;
+  const cur=await p.request({method:"eth_chainId"});
+  if(String(cur).toLowerCase()===n.hex) return;
+  try{
+    await p.request({method:"wallet_switchEthereumChain",params:[{chainId:n.hex}]});
+  }catch(e){
+    if(e&&(e.code===4902||e.code===-32603||/unrecognized|not added|Unrecognized/i.test(e.message||""))){
+      await p.request({method:"wallet_addEthereumChain",params:[{chainId:n.hex,chainName:n.name,nativeCurrency:{name:"USDC",symbol:"USDC",decimals:18},rpcUrls:n.rpc,blockExplorerUrls:[n.explorer]}]});
+    } else throw e;
+  }
+}
+
+/* ================= WALLET (EIP-6963 + fallback) ================= */
+window.addEventListener("eip6963:announceProvider",e=>{S.wallets.set(e.detail.info.uuid,e.detail);renderWalletList()});
+window.dispatchEvent(new Event("eip6963:requestProvider"));
+function walletList(){
+  const l=[...S.wallets.values()];
+  if(!l.length&&window.ethereum){
+    const provs=Array.isArray(window.ethereum.providers)?window.ethereum.providers:[window.ethereum];
+    provs.forEach((p,i)=>l.push({info:{uuid:"legacy"+i,name:p.isRabby?"Rabby Wallet":p.isMetaMask?"MetaMask":p.isOkxWallet?"OKX Wallet":"Wallet browser",icon:""},provider:p}));
+  }
+  return l;
+}
+function openModal(){
+  renderWalletList(); $("#veil").classList.add("open"); setTimeout(()=>{const b=$("#mBody button");if(b)b.focus();else $("#mClose").focus()},0);
+}
+function closeModal(){$("#veil").classList.remove("open")}
+$("#mClose").onclick=closeModal;
+$("#veil").addEventListener("click",e=>{if(e.target.id==="veil")closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeNetMenu()}});
+function renderWalletList(){
+  const body=$("#mBody"); if(!$("#veil").classList.contains("open")) return;
+  body.innerHTML="";
+  if(S.account){
+    $("#mTitle").textContent="Wallet terhubung";
+    $("#mSub").textContent=S.w.info.name+" · "+short(S.account);
+    const c=mk("button","wopt","Salin alamat");c.onclick=async()=>{try{await navigator.clipboard.writeText(S.account);toast("Alamat disalin")}catch{toast("Gagal menyalin alamat")}};
+    const x=mk("button","wopt","Putuskan dari SwingPay");x.onclick=()=>{disconnect();closeModal()};
+    body.append(c,x); return;
+  }
+  $("#mTitle").textContent="Hubungkan wallet";
+  const l=walletList();
+  if(!l.length){
+    $("#mSub").textContent="Tidak ada wallet EVM yang terdeteksi.";
+    body.innerHTML='<p style="color:var(--mute);font-size:13px">Pasang MetaMask, Rabby, OKX Wallet, atau wallet EVM lain, lalu muat ulang halaman ini. Di ponsel, buka SwingPay dari browser di dalam aplikasi wallet.</p>';
     return;
   }
-  providers.forEach((w,i)=>{
-    const b=document.createElement('button'); b.className='w';
-    b.innerHTML=(w.info.icon?`<img src="${w.info.icon}" alt="">`:'<div class="logo" style="width:26px;height:26px;border-radius:7px;font-size:12px">'+w.info.name[0]+'</div>')
-      +`<span>${w.info.name}</span><small>Hubungkan</small>`;
-    b.onclick=()=>connect(i); box.appendChild(b);
+  $("#mSub").textContent="Pilih wallet EVM yang terpasang di browser kamu.";
+  l.forEach(w=>{
+    const b=mk("button","wopt");
+    if(w.info.icon){const i=new Image();i.src=w.info.icon;i.alt="";b.append(i)}
+    b.append(document.createTextNode(w.info.name));
+    b.onclick=()=>connect(w); body.append(b);
   });
 }
-
-/* ---------- Koneksi ---------- */
-async function connect(i){
-  if(busy) return; busy=true;
-  const w=providers[i]; p=w.provider; clr();
-  say('Membuka '+w.info.name+'… setujui permintaan di dompet kamu.');
+function mk(tag,cls,txt){const e=document.createElement(tag);e.className=cls;if(txt)e.textContent=txt;return e}
+async function connect(w){
   try{
-    let accs=[];
-    try{ accs=await p.request({method:'eth_requestAccounts'}); }
-    catch(e){
-      if(e&&(e.code===-32002||/already pending/i.test(e.message||''))){
-        say('Ada permintaan yang masih menunggu. Buka jendela '+w.info.name+' lalu setujui.','err'); busy=false; return;
-      }
-      throw e;
-    }
-    if(!accs||!accs.length){
-      try{
-        await p.request({method:'wallet_requestPermissions',params:[{eth_accounts:{}}]});
-        accs=await p.request({method:'eth_accounts'});
-      }catch(_){}
-    }
-    if(!accs||!accs.length){ say('Dompet tidak mengembalikan akun. Buka kunci '+w.info.name+' lalu coba lagi.','err'); busy=false; return; }
-    acct=accs[0];
-    listen();
-    await checkChain(); await refresh();
-    $('discon').classList.add('hide'); $('con').classList.remove('hide');
-    $('who').textContent=w.info.name+' · '+short(acct);
-    say('Terhubung sebagai '+short(acct),'ok');
-  }catch(e){ say('Gagal terhubung: '+(e.message||e),'err'); }
-  busy=false;
-}
-function listen(){
-  if(!p||p._swing) return; p._swing=true;
-  p.on&&p.on('accountsChanged',a=>{ if(!a.length) return disconnect(); acct=a[0]; $('who').textContent=short(acct); refresh(); });
-  p.on&&p.on('chainChanged',()=>{ checkChain().then(refresh); });
-}
-async function checkChain(){
-  const id=await p.request({method:'eth_chainId'});
-  onArc=parseInt(id,16)===ARC.chainIdDec;
-  const c=$('netChip'); c.textContent=onArc?'Arc Testnet':'Jaringan salah'; c.className='chip '+(onArc?'ok':'err');
-  return onArc;
-}
-async function switchChain(){
-  try{ await p.request({method:'wallet_switchEthereumChain',params:[{chainId:ARC.chainIdHex}]}); }
-  catch(e){
-    if(e.code===4902||e.code===-32603){ await p.request({method:'wallet_addEthereumChain',params:[ARC]}); }
-    else { say('Gagal pindah jaringan: '+(e.message||e),'err'); return false; }
+    $("#mSub").textContent="Menunggu persetujuan di "+w.info.name+"… buka jendela wallet kalau belum muncul.";
+    const acc=await w.provider.request({method:"eth_requestAccounts"});
+    if(!acc||!acc.length) throw new Error("Wallet tidak mengembalikan akun");
+    attach(w,acc[0]); closeModal(); toast("Terhubung: "+short(acc[0]));
+    try{localStorage.setItem("swingpay.wallet",w.info.rdns||w.info.name)}catch{}
+  }catch(e){
+    if(e&&e.code===4001) toast("Koneksi ditolak di wallet");
+    else if(e&&e.code===-32002) toast("Sudah ada permintaan koneksi yang menunggu. Buka wallet dan setujui.");
+    else toast("Gagal terhubung: "+(e&&e.message?e.message.slice(0,90):"kesalahan tidak diketahui"));
+    renderWalletList();
   }
-  return await checkChain();
 }
-function disconnect(){ p=null;acct=null; $('con').classList.add('hide'); $('discon').classList.remove('hide');
-  $('who').textContent='Belum terhubung'; $('netChip').textContent='—'; $('netChip').className='chip'; clr(); }
+function attach(w,account){
+  if(S.w&&S.w.provider.removeListener&&S._h){S.w.provider.removeListener("accountsChanged",S._h.a);S.w.provider.removeListener("chainChanged",S._h.c)}
+  S.w=w; S.account=account;
+  S._h={a:acc=>{if(!acc.length)disconnect();else{S.account=acc[0];ui();refreshBalances()}},c:()=>{ui()}};
+  if(w.provider.on){w.provider.on("accountsChanged",S._h.a);w.provider.on("chainChanged",S._h.c)}
+  ui(); refreshBalances();
+}
+function disconnect(){S.w=null;S.account=null;S.bal={USDC:null,EURC:null};ui();paintBalances();try{localStorage.removeItem("swingpay.wallet")}catch{}}
+async function silentReconnect(){
+  let want=null;try{want=localStorage.getItem("swingpay.wallet")}catch{}
+  if(!want) return;
+  await new Promise(r=>setTimeout(r,400));
+  const w=walletList().find(x=>(x.info.rdns||x.info.name)===want); if(!w) return;
+  try{const acc=await w.provider.request({method:"eth_accounts"});if(acc&&acc[0])attach(w,acc[0])}catch{}
+}
+$("#walletBtn").addEventListener("click",openModal);
 
-/* ---------- Saldo & kirim ---------- */
-const pad=s=>s.replace('0x','').padStart(64,'0');
-function toUnits(v){ const [a,b='']=String(v).split('.'); return BigInt(a||'0')*10n**BigInt(DEC)+BigInt((b+'0'.repeat(DEC)).slice(0,DEC)||'0'); }
-function fmt(bi){ const s=bi.toString().padStart(DEC+1,'0'); return s.slice(0,-DEC)+'.'+s.slice(-DEC).slice(0,2); }
-async function refresh(){
-  if(!p||!acct) return;
-  if(!onArc){ $('bal').textContent='—'; return; }
+/* ================= SALDO ================= */
+async function refreshBalances(){
+  if(!S.account){paintBalances();return}
+  const n=NET(), a=S.account;
   try{
-    const r=await p.request({method:'eth_call',params:[{to:USDC,data:'0x70a08231'+pad(acct)},'latest']});
-    $('bal').textContent=fmt(BigInt(r||'0x0'));
-  }catch(e){ $('bal').textContent='—'; }
+    const nat=await rpc("eth_getBalance",[a,"latest"]);              // USDC native, 18 desimal
+    S.bal.USDC=BigInt(nat)/10n**12n;                                    // -> 6 desimal
+  }catch{S.bal.USDC=null}
+  try{
+    const r=await rpc("eth_call",[{to:n.tokens.EURC,data:"0x70a08231"+pad(a)},"latest"]);
+    S.bal.EURC=BigInt(r&&r!=="0x"?r:"0x0");
+  }catch{S.bal.EURC=null}
+  paintBalances();
 }
-async function send(){
-  clr();
-  const to=$('to').value.trim(), amt=$('amt').value.trim();
-  if(!/^0x[a-fA-F0-9]{40}$/.test(to)) return say('Alamat tujuan tidak valid.','err');
-  if(!(Number(amt)>0)) return say('Jumlah harus lebih dari 0.','err');
-  if(!onArc && !(await switchChain())) return say('Pindah dulu ke Arc Testnet.','err');
-  const val=toUnits(amt).toString(16).padStart(64,'0');
-  try{
-    say('Menunggu konfirmasi di dompet…');
-    const tx=await p.request({method:'eth_sendTransaction',params:[{from:acct,to:USDC,data:'0xa9059cbb'+pad(to)+val}]});
-    say('Terkirim! Tx: '+tx,'ok'); setTimeout(refresh,4000);
-  }catch(e){ say('Transaksi gagal/dibatalkan: '+(e.message||e),'err'); }
+function paintBalances(){
+  const u=S.bal.USDC,e=S.bal.EURC;
+  $("#totalBig").textContent=u==null?"—":"$ "+fmt(u);
+  $("#aUSDC").innerHTML=u==null?"—":fmt(u)+"<small>USDC</small>";
+  $("#aEURC").innerHTML=e==null?"—":fmt(e)+"<small>EURC</small>";
+  $("#assetHint").textContent=S.account?(u==null&&e==null?"Saldo belum bisa dimuat. Coba ganti jaringan atau muat ulang.":"Saldo diambil langsung dari "+NET().name+"."):"Hubungkan wallet untuk melihat saldo kamu.";
+  const t=$("#sendTok").value;
+  $("#sendBal").textContent="Saldo: "+(S.bal[t]==null?"—":fmt(S.bal[t])+" "+t);
 }
 
-$('rescan').onclick=()=>{scan();say('Memindai ulang dompet…');};
-$('refresh').onclick=refresh; $('send').onclick=send; $('dis').onclick=disconnect;
-$('switch').onclick=async()=>{ if(await switchChain()){say('Sudah di Arc Testnet','ok');refresh();} };
-scan(); setTimeout(scan,600);
+/* ================= UI STATE ================= */
+function ui(){
+  const on=!!S.account;
+  $("#walletLabel").innerHTML=on?'<span class="addr-long">'+short(S.account)+'</span><span class="addr-short" style="display:none">'+short(S.account)+'</span>':"Hubungkan wallet";
+  if(on&&window.innerWidth<=860) $("#walletLabel").innerHTML=short(S.account);
+  $("#walletDot").className="dot"+(on?"":" off");
+  $("#walletBtn").classList.toggle("btn-connect",!on);
+  updateSendBtn();
+}
+function updateSendBtn(){
+  const b=$("#sendGo");
+  if(!S.account){b.textContent="Hubungkan wallet";b.disabled=false;return}
+  b.textContent="Kirim "+$("#sendTok").value;b.disabled=false;
+}
+
+/* ================= KIRIM (transaksi nyata) ================= */
+$("#sendTok").addEventListener("change",()=>{paintBalances();updateSendBtn()});
+$("#sendMax").addEventListener("click",()=>{
+  const t=$("#sendTok").value; let b=S.bal[t];
+  if(b==null){toast("Hubungkan wallet dulu untuk melihat saldo");return}
+  if(t==="USDC"){const keep=50000n;b=b>keep?b-keep:0n} // sisakan 0.05 USDC untuk gas
+  $("#sendAmt").value=(Number(b)/10**DEC).toFixed(DEC).replace(/\.?0+$/,"")||"0";
+});
+function sendErr(m){$("#sendErr").textContent=m||""}
+$("#sendGo").addEventListener("click",async()=>{
+  sendErr("");
+  if(!S.account){openModal();return}
+  const tok=$("#sendTok").value, to=$("#sendTo").value.trim(), units=parseUnits($("#sendAmt").value);
+  if(!isAddr(to)) return sendErr("Alamat penerima tidak valid. Harus diawali 0x dan 42 karakter.");
+  if(units==null||units<=0n) return sendErr("Masukkan jumlah yang valid (maksimal 6 angka desimal).");
+  if(S.bal[tok]!=null&&units>S.bal[tok]) return sendErr("Saldo "+tok+" tidak cukup.");
+  const btn=$("#sendGo"); btn.disabled=true; btn.textContent="Menunggu wallet…";
+  try{
+    await ensureArc();
+    const n=NET();
+    const data="0xa9059cbb"+pad(to)+pad(units.toString(16));
+    const hash=await S.w.provider.request({method:"eth_sendTransaction",params:[{from:S.account,to:n.tokens[tok],data,value:"0x0"}]});
+    addHist({hash,net:S.net,tok,amount:fmt(units),to,status:"pending",ts:Date.now()});
+    toast("Transaksi dikirim, menunggu konfirmasi…");
+    $("#sendAmt").value="";
+    watchTx(hash,S.net);
+  }catch(e){
+    if(e&&e.code===4001) sendErr("Transaksi dibatalkan di wallet.");
+    else sendErr("Gagal mengirim: "+(e&&e.message?e.message.slice(0,140):"kesalahan tidak diketahui"));
+  }finally{updateSendBtn()}
+});
+async function watchTx(hash,netKey){
+  const prev=S.net; 
+  for(let i=0;i<60;i++){
+    await new Promise(r=>setTimeout(r,2000));
+    try{
+      const keep=S.net;S.net=netKey;
+      const rc=await rpc("eth_getTransactionReceipt",[hash]);
+      S.net=keep;
+      if(rc){
+        setHist(hash,rc.status==="0x1"?"ok":"fail");
+        toast(rc.status==="0x1"?"Transfer berhasil dikonfirmasi":"Transaksi gagal di on-chain");
+        refreshBalances(); return;
+      }
+    }catch{S.net=prev}
+  }
+  toast("Belum ada konfirmasi. Cek status di explorer.");
+}
+
+/* ================= RIWAYAT ================= */
+function loadHist(){try{S.hist=JSON.parse(localStorage.getItem("swingpay.hist")||"[]")}catch{S.hist=[]}}
+function saveHist(){try{localStorage.setItem("swingpay.hist",JSON.stringify(S.hist.slice(0,30)))}catch{}}
+function addHist(h){S.hist.unshift(h);saveHist();renderHist()}
+function setHist(hash,st){const h=S.hist.find(x=>x.hash===hash);if(h){h.status=st;saveHist();renderHist()}}
+function renderHist(){
+  const box=$("#hist"); box.innerHTML="";
+  const list=S.hist.filter(h=>h.net===S.net&&(!S.account||!h.from||h.from===S.account));
+  if(!list.length){box.innerHTML='<p class="empty">Belum ada transaksi di '+NET().name+'. Transfer pertama kamu akan muncul di sini.</p>';return}
+  list.slice(0,6).forEach(h=>{
+    const row=mk("div","tx");
+    const st={pending:["Menunggu","var(--amber)"],ok:["Berhasil","var(--green)"],fail:["Gagal","var(--red)"]}[h.status];
+    row.innerHTML='<div class="coin" style="background:'+(h.tok==="USDC"?"#2775ca":"#3557d6")+'">'+(h.tok==="USDC"?"$":"€")+'</div><div class="n"><b>Kirim '+h.tok+' ke '+short(h.to)+'</b><small>'+ago(h.ts)+'</small></div><div class="v">-'+h.amount+' '+h.tok+'<small style="color:'+st[1]+'">'+st[0]+'</small></div>';
+    const a=document.createElement("a");a.href=NETS[h.net].explorer+"/tx/"+h.hash;a.target="_blank";a.rel="noopener";a.style.display="contents";a.setAttribute("aria-label","Buka di explorer");
+    a.append(row); box.append(a);
+  });
+}
+$("#clearHist").addEventListener("click",()=>{S.hist=[];saveHist();renderHist()});
+
+/* ================= BRIDGE (antarmuka; eksekusi menyusul) ================= */
+(function(){
+  const sel=$("#brFrom");
+  CHAINS.filter(c=>c!=="dan lainnya").forEach(c=>{const o=document.createElement("option");o.textContent=c;sel.append(o)});
+  const inp=$("#brAmt"),out=$("#brOut");
+  inp.addEventListener("input",()=>{const u=parseUnits(inp.value);out.value=u!=null&&u>0n?fmt(u):""});
+  $("#brGo").addEventListener("click",()=>toast("Bridge belum aktif."));
+})();
+
+/* ================= RENDER STATIS ================= */
+function coin(label,col,cls){const d=mk("div","coin"+(cls?" "+cls:""));d.style.background=col;d.textContent=label.length>3?label.slice(0,3):label;return d}
+(function(){
+  const c=$("#chains");
+  CHAINS.forEach(n=>{const d=mk("div","chain");d.append(coin(n==="dan lainnya"?"···":n.slice(0,2).toUpperCase(),CHAIN_COL[n]));d.append(document.createTextNode(n));c.append(d)});
+  const f=$("#fiatGrid");
+  FIAT.forEach(([fl,code,nm])=>{const d=mk("div","fx");d.innerHTML='<div class="flag">'+fl+'</div><b>'+code+'</b><span>'+nm+'</span>';f.append(d)});
+})();
+function renderTokens(){
+  const g=$("#tokGrid"); g.innerHTML="";
+  (S.allTok?TOKENS:TOKENS.slice(0,15)).forEach(([s,col,live])=>{
+    const d=mk("div","tk"+(live?"":" dim"));
+    d.title=live?s+" aktif":s+" menyusul";
+    d.append(coin(s.slice(0,2),col));d.append(document.createTextNode(s));g.append(d);
+  });
+  $("#tokMore").textContent=S.allTok?"Ringkas":"Lihat semua token";
+}
+$("#tokMore").addEventListener("click",()=>{S.allTok=!S.allTok;renderTokens()});
+
+/* ================= INIT ================= */
+loadHist(); renderTokens(); setNet("mainnet"); ui(); paintBalances(); silentReconnect();
 </script>
 </body>
 </html>
