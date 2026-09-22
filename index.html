@@ -51,9 +51,10 @@ label:first-of-type{margin-top:0}
 .field{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px 12px}
 .field:focus{outline:none;border-color:var(--blue)}
 .row{display:flex;gap:8px}
-.toks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.toks{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .tok{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;text-align:left}
 .tok[aria-pressed=true]{border-color:var(--blue);background:#101B3E}
+.tok:disabled{opacity:.4;cursor:not-allowed}
 .tok b{display:block;font-weight:600;line-height:1.2}
 .tok small{color:var(--muted);font-size:12px}
 .ic{width:28px;height:28px;flex:none}
@@ -121,6 +122,7 @@ dialog p{color:var(--muted);font-size:14px;margin-bottom:14px}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <symbol id="usdc" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#2775CA"/><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M10.5 6.3A10.5 10.5 0 0 0 10.5 25.7M21.5 6.3A10.5 10.5 0 0 1 21.5 25.7" stroke-width="1.6"/><path d="M19.2 13.2c0-1.6-1.4-2.3-3.2-2.3s-3.2.8-3.2 2.1c0 3 6.6 1.5 6.6 5 0 1.4-1.4 2.3-3.4 2.3s-3.4-.9-3.5-2.4M16 8.8v14.4" stroke-width="1.7"/></g></symbol>
 <symbol id="eurc" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#2775CA"/><path d="M10.5 6.3A10.5 10.5 0 0 0 10.5 25.7M21.5 6.3A10.5 10.5 0 0 1 21.5 25.7" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><text x="16" y="21.6" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="15" fill="#fff">€</text></symbol>
+<symbol id="cirbtc" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#F7931A"/><path d="M20.9 14.3c.3-1.9-1.2-2.9-3.2-3.6l.6-2.6-1.6-.4-.6 2.5-1.3-.3.6-2.5-1.6-.4-.6 2.6-2.6-.6-.4 1.7s1 .2 1 .2c.5.1.6.4.6.7l-1.4 5.5c0 .1-.1.3-.4.2 0 0-1 0-1 0l-.7 1.9 2.5.6-.6 2.6 1.6.4.6-2.6 1.3.3-.6 2.6 1.6.4.6-2.6c2.7.5 4.7.3 5.5-2.1.7-1.9 0-3-1.4-3.7 1-.2 1.7-.9 2-2.4zm-3.6 5c-.5 1.9-3.7.9-4.7.6l.8-3.4c1 .3 4.4.8 3.9 2.8zm.5-5.1c-.4 1.7-3.1.9-4 .6l.8-3.1c.9.2 3.7.7 3.2 2.5z" fill="#fff"/></symbol>
 </defs></svg>
 
 <div class="app">
@@ -152,6 +154,7 @@ dialog p{color:var(--muted);font-size:14px;margin-bottom:14px}
    <div class="toks">
     <button class="tok" data-tok="USDC" aria-pressed="true"><svg class="ic"><use href="#usdc"/></svg><span><b>USDC</b><small>US dollar</small></span></button>
     <button class="tok" data-tok="EURC" aria-pressed="false"><svg class="ic"><use href="#eurc"/></svg><span><b>EURC</b><small>Euro</small></span></button>
+    <button class="tok" data-tok="cirBTC" aria-pressed="false"><svg class="ic"><use href="#cirbtc"/></svg><span><b>cirBTC</b><small>Bitcoin</small></span></button>
    </div>
    <label for="to">Recipient address</label>
    <input class="field" id="to" placeholder="0x…" autocomplete="off" spellcheck="false">
@@ -218,6 +221,7 @@ dialog p{color:var(--muted);font-size:14px;margin-bottom:14px}
    <dt>Explorer</dt><dd><a id="n-ex" style="color:var(--blue-hi)" target="_blank" rel="noopener"></a></dd>
    <dt>USDC</dt><dd><code id="n-usdc"></code></dd>
    <dt>EURC</dt><dd><code id="n-eurc"></code></dd>
+   <dt>cirBTC</dt><dd><code id="n-cirbtc"></code></dd>
   </dl>
   <button class="btn ghost" id="add" style="margin-top:20px">Add Arc Testnet to wallet</button>
  </div>
@@ -246,12 +250,13 @@ dialog p{color:var(--muted);font-size:14px;margin-bottom:14px}
 const NET={id:'0x4cef52',dec:5042002,rpc:'https://rpc.testnet.arc.network',ex:'https://testnet.arcscan.app'};
 const TOKENS={
  USDC:{addr:'0x3600000000000000000000000000000000000000',dec:6,name:'USD Coin'},
- EURC:{addr:'0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a',dec:6,name:'Euro Coin'}};
+ EURC:{addr:'0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a',dec:6,name:'Euro Coin'},
+ cirBTC:{addr:'0xf0C4a4CE82A5746AbAAd9425360Ab04fbBA432BF',dec:8,name:'Circle Wrapped Bitcoin'}};
 const $=s=>document.querySelector(s);
 const store={get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const short=a=>a.slice(0,6)+'…'+a.slice(-4);
 const pad=h=>h.replace(/^0x/,'').toLowerCase().padStart(64,'0');
-const toUnits=(s,d)=>{const m=/^(\d+)(?:\.(\d{0,6}))?$/.exec(s.trim());return m?BigInt(m[1]+(m[2]||'').padEnd(d,'0')):null};
+const toUnits=(s,d)=>{const re=new RegExp('^(\\d+)(?:\\.(\\d{0,'+d+'}))?$');const m=re.exec(s.trim());return m?BigInt(m[1]+(m[2]||'').padEnd(d,'0')):null};
 const fmt=(v,d)=>{const s=v.toString().padStart(d+1,'0'),f=s.slice(-d).replace(/0+$/,'');return BigInt(s.slice(0,-d)).toLocaleString('en-US')+(f?'.'+f:'')};
 
 const wallets=new Map();
@@ -331,12 +336,13 @@ async function refresh(){
 
 /* ---------- send ---------- */
 function say(t,c,html){const m=$('#msg');m.className='msg '+(c||'');html?m.innerHTML=t:m.textContent=t}
-$('#max').onclick=()=>{if(bal[tok]!=null){amtMode='token';$('#amt').value=fmt(bal[tok],6).replace(/,/g,'');render()}};
+$('#max').onclick=()=>{if(bal[tok]!=null){amtMode='token';$('#amt').value=fmt(bal[tok],TOKENS[tok].dec).replace(/,/g,'');render()}};
 ['#to','#amt'].forEach(s=>$(s).addEventListener('input',render));
 $('#rqb').onclick=async()=>{
  if(!acct)return openModal();
  const a=$('#rq').value.trim(),m=$('#rqm');
- if(a&&(!toUnits(a,6)||toUnits(a,6)===0n)){m.textContent='Enter an amount above 0, or leave it empty.';return}
+ const rd=TOKENS[tok].dec;
+ if(a&&(!toUnits(a,rd)||toUnits(a,rd)===0n)){m.textContent='Enter an amount above 0, or leave it empty.';return}
  const link=location.origin+location.pathname+'?to='+acct+(a?'&amount='+a:'')+'&token='+tok;
  try{await navigator.clipboard.writeText(link);m.textContent='Link copied. It asks for '+(a?a+' ':'any amount of ')+tok+'.'}
  catch(e){m.textContent=link}
@@ -379,7 +385,7 @@ async function watch(h){
 }
 function receipt(h){
  const m=$('#msg');m.className='msg';
- m.innerHTML=`<div class="rcpt"><div class="ra">${fmt(BigInt(h.amt),6)} <small>${h.tok}</small></div><svg class="arc" viewBox="0 0 200 40" aria-hidden="true"><path d="M8 34C60 -6 140 -6 192 34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="8" cy="34" r="4"/><circle cx="192" cy="34" r="4"/></svg><div class="rf"><span>${short(h.from||acct)}</span><span>${short(h.to)}</span></div><p>${h.ms?'Confirmed in about '+(h.ms/1000).toFixed(1)+' s. ':'Confirmed. '}<a target="_blank" rel="noopener" href="${NET.ex}/tx/${h.hash}">View on ArcScan</a></p></div>`;
+ m.innerHTML=`<div class="rcpt"><div class="ra">${fmt(BigInt(h.amt),TOKENS[h.tok].dec)} <small>${h.tok}</small></div><svg class="arc" viewBox="0 0 200 40" aria-hidden="true"><path d="M8 34C60 -6 140 -6 192 34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="8" cy="34" r="4"/><circle cx="192" cy="34" r="4"/></svg><div class="rf"><span>${short(h.from||acct)}</span><span>${short(h.to)}</span></div><p>${h.ms?'Confirmed in about '+(h.ms/1000).toFixed(1)+' s. ':'Confirmed. '}<a target="_blank" rel="noopener" href="${NET.ex}/tx/${h.hash}">View on ArcScan</a></p></div>`;
 }
 
 /* ---------- estimate & receive ---------- */
@@ -389,16 +395,17 @@ $('#cur').innerHTML=CUR.map(c=>`<option>${c}</option>`).join('');
 $('#cur').value=CUR.includes(cur)?cur:'USD';cur=$('#cur').value;
 $('#cur').onchange=e=>{cur=e.target.value;store.set('sp:cur',cur);render()};
 $('#modeTok').onclick=()=>{amtMode='token';$('#amt').value='';render()};
-$('#modeFiat').onclick=()=>{amtMode='fiat';$('#amt').value='';render()};
+$('#modeFiat').onclick=()=>{if(tok==='cirBTC')return;amtMode='fiat';$('#amt').value='';render()};
 function tokenAmt(){
  const av=$('#amt').value.trim();
  if(!av)return null;
- if(amtMode==='token')return toUnits(av,6);
+ const d=TOKENS[tok].dec;
+ if(amtMode==='token')return toUnits(av,d);
  if(!fx||!fx[cur])return undefined;
  const n=Number(av.replace(',','.'));
  if(!isFinite(n)||n<0||!/^\d+([.,]\d{0,2})?$/.test(av))return null;
  const usd=n/fx[cur],v=usd*(tok==='EURC'?fx.EUR:1);
- return BigInt(Math.round(v*1e6));
+ return BigInt(Math.round(v*10**d));
 }
 fetch('https://open.er-api.com/v6/latest/USD').then(r=>r.json()).then(j=>{if(j&&j.rates&&j.rates.EUR){fx=j.rates;render()}}).catch(()=>{});
 function makeQr(){
@@ -418,11 +425,13 @@ function render(){
  $('#net').className='net'+(ok?' ok':'');
  $('#netTxt').textContent=!acct?'Arc Testnet':ok?'Arc Testnet · connected':'Wrong network';
  const b=bal[tok];
- $('#balLine').textContent=!acct?'Connect a wallet to see your balance':b==null?'Balance unavailable':'Balance: '+fmt(b,6)+' '+tok;
+ $('#balLine').textContent=!acct?'Connect a wallet to see your balance':b==null?'Balance unavailable':'Balance: '+fmt(b,TOKENS[tok].dec)+' '+tok;
 $('#max').hidden=!(acct&&b)||amtMode==='fiat';
  $('#go').textContent=busy?'Waiting for wallet…':acct?'Send '+tok:'Connect wallet';
  document.querySelectorAll('#v-send .toks .tok').forEach(x=>x.setAttribute('aria-pressed',x.dataset.tok===tok));
  $('#modeTok').setAttribute('aria-pressed',amtMode==='token');
+ if(tok==='cirBTC'&&amtMode==='fiat'){amtMode='token';$('#amt').value=''}
+ $('#modeFiat').disabled=tok==='cirBTC';
  $('#modeFiat').setAttribute('aria-pressed',amtMode==='fiat');
  $('#amt').placeholder=amtMode==='fiat'?'0.00':'0.00';
  $('#rq').placeholder='Amount in '+tok+' (optional)';
@@ -433,14 +442,14 @@ $('#max').hidden=!(acct&&b)||amtMode==='fiat';
   else if(amtMode==='fiat'&&amt===undefined&&av)why='Exchange rates are still loading. Try again in a moment.';
   else if(av&&amt==null)why=amtMode==='fiat'?'Use numbers only, with up to 2 decimals.':'Use numbers only, with up to 6 decimals.';
   else if(amt===0n)why='The amount has to be more than 0.';
-  else if(amt&&b!=null&&amt>b)why='Your '+tok+' balance is '+fmt(b,6)+', which is less than this amount.';
+  else if(amt&&b!=null&&amt>b)why='Your '+tok+' balance is '+fmt(b,TOKENS[tok].dec)+', which is less than this amount.';
  }
  $('#why').textContent=why;
  $('#go').disabled=busy||(acct&&(!!why||!to||!amt));
  let est='';
- if(amtMode==='fiat'&&amt&&amt>0n)est='You send ≈ '+fmt(amt,6)+' '+tok+' at the current rate.';
- else if(amtMode==='token'&&fx&&amt&&amt>0n&&fx[cur]){
-  const usd=Number(amt)/1e6*(tok==='EURC'?1/fx.EUR:1);
+ if(amtMode==='fiat'&&amt&&amt>0n)est='You send ≈ '+fmt(amt,TOKENS[tok].dec)+' '+tok+' at the current rate.';
+ else if(amtMode==='token'&&fx&&amt&&amt>0n&&fx[cur]&&tok!=='cirBTC'){
+  const usd=Number(amt)/10**TOKENS[tok].dec*(tok==='EURC'?1/fx.EUR:1);
   est='About '+new Intl.NumberFormat(undefined,{style:'currency',currency:cur,maximumFractionDigits:(cur==='JPY'||cur==='IDR')?0:2}).format(usd*fx[cur])+' (estimate)';
  }
  $('#est').textContent=est;
@@ -452,22 +461,22 @@ $('#max').hidden=!(acct&&b)||amtMode==='fiat';
   if(qrFor!==acct){qrFor=acct;makeQr()}
  }
  $('#bals').className=acct?'':'empty';
- $('#bals').innerHTML=acct?Object.keys(TOKENS).map(k=>`<div class="bal"><svg class="ic"><use href="#${k.toLowerCase()}"/></svg><span>${k}</span><span>${bal[k]==null?'…':fmt(bal[k],6)}</span></div>`).join('')+(bal.USDC===0n?'<p class="empty" style="margin-top:12px">No test funds yet. Request some from the <a style="color:var(--blue-hi)" target="_blank" rel="noopener" href="https://faucet.circle.com">Circle faucet</a>, choose Arc Testnet.</p>':''):'Nothing to show yet.';
+ $('#bals').innerHTML=acct?Object.keys(TOKENS).map(k=>`<div class="bal"><svg class="ic"><use href="#${k.toLowerCase()}"/></svg><span>${k}</span><span>${bal[k]==null?'…':fmt(bal[k],TOKENS[k].dec)}</span></div>`).join('')+(bal.USDC===0n?'<p class="empty" style="margin-top:12px">No test funds yet. Request some from the <a style="color:var(--blue-hi)" target="_blank" rel="noopener" href="https://faucet.circle.com">Circle faucet</a>, choose Arc Testnet.</p>':''):'Nothing to show yet.';
  $('#hist').innerHTML=!acct?'<p class="empty">Connect a wallet to see your transfers.</p>':!hist.length?'<p class="empty">No transfers yet. Send your first payment from the Send page.</p>':
-  hist.map(h=>`<div class="tx"><svg class="ic"><use href="#${h.tok.toLowerCase()}"/></svg><span>${fmt(BigInt(h.amt),6)} ${h.tok} to ${short(h.to)}</span><span class="st ${h.status}">${h.status}</span><small>${new Date(h.t).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})}${h.ms?' · confirmed in '+(h.ms/1000).toFixed(1)+' s':''}</small><a target="_blank" rel="noopener" href="${NET.ex}/tx/${h.hash}">ArcScan</a></div>`).join('');
+  hist.map(h=>`<div class="tx"><svg class="ic"><use href="#${h.tok.toLowerCase()}"/></svg><span>${fmt(BigInt(h.amt),TOKENS[h.tok].dec)} ${h.tok} to ${short(h.to)}</span><span class="st ${h.status}">${h.status}</span><small>${new Date(h.t).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})}${h.ms?' · confirmed in '+(h.ms/1000).toFixed(1)+' s':''}</small><a target="_blank" rel="noopener" href="${NET.ex}/tx/${h.hash}">ArcScan</a></div>`).join('');
 }
 (()=>{
  const p=new URLSearchParams(location.search),to=p.get('to')||'',a=p.get('amount')||'',t=(p.get('token')||'').toUpperCase();
  if(TOKENS[t])tok=t;
  if(!/^0x[a-fA-F0-9]{40}$/.test(to))return;
  $('#to').value=to;
- const u=toUnits(a,6);if(u&&u>0n)$('#amt').value=a;
+ const u=toUnits(a,TOKENS[tok].dec);if(u&&u>0n)$('#amt').value=a;
  say('This is a payment request. Check the address before you send.');
 })();
 $('#n-id').textContent=NET.dec+' ('+NET.id+')';
 $('#n-rpc').textContent=NET.rpc;
 $('#n-ex').textContent=NET.ex;$('#n-ex').href=NET.ex;
-$('#n-usdc').textContent=TOKENS.USDC.addr;$('#n-eurc').textContent=TOKENS.EURC.addr;
+$('#n-usdc').textContent=TOKENS.USDC.addr;$('#n-eurc').textContent=TOKENS.EURC.addr;$('#n-cirbtc').textContent=TOKENS.cirBTC.addr;
 render();
 </script>
 </body>
